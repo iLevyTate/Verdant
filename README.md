@@ -12,6 +12,12 @@ A mobile-first, procedural 3D terrarium game. Build a little world, nurture plan
 
 ## New in this version
 
+- **Existing worlds are kept:** the world key and data schema stay the same. A previous valid save and a separate pre-update checkpoint provide recovery copies. Unreadable or unsupported saves open recovery controls instead of being replaced by a new world. Stale tabs are stopped from silently overwriting newer saved data.
+- **Full element audit:** every placeable element and all three variants are checked; see [QUALITY_AUDIT.md](QUALITY_AUDIT.md). Terrain smoothing now blends local neighbors, interrupted brush strokes commit consistently, and keyboard sunlight changes support Undo. Auto graphics adapts rendering resolution under sustained load and gradually restores it.
+
+- **Avoidance for every animal:** rabbits, frogs, snails, and ladybugs check their entire ground route. Bees, butterflies, and fireflies check 3D flight corridors and steer around vegetation, decorations, and one another. Each species has its own movement speed, pauses, and turns. Flight targets sit above blooms rather than inside them.
+- **Regular garden frogs:** speckled olive/brown bodies, flatter feet, ground-level hops, and damp-shore preferences. Existing saved frogs convert automatically without changing their IDs. Tree climbing has been removed.
+
 - **Smaller, livelier Holland Lops:** 45% smaller in new and existing worlds, with short hop bursts, anticipation, soft landings, grazing beside plants, sniffing pauses, breathing, and springy ear motion. Paths account for rendered vegetation bounds, decorations, other ground animals, pond edges, and steep terrain. Moving an animal resets its old route.
 - **Updates ask first:** checks run at launch, every five minutes while open, when returning to the app, and after reconnecting. A ready update offers **Save & update now** or **Later**. Updates preserve the current release until accepted; failed saving blocks activation and asks you to export your world. If another tab updates, this tab asks before reloading.
 
@@ -22,7 +28,7 @@ A mobile-first, procedural 3D terrarium game. Build a little world, nurture plan
 - Choose care mode during world creation or change it in Care & display / Field Guide → Your world. Care mode is independent of Garden Journey / Free build, so both care choices work with either building mode. Switching preserves the layout and progression and starts with fresh needs.
 
 - Bumblebees visit flowers and help pollination.
-- Little tree frogs hop through moss and perch on low branches.
+- Garden frogs take short, crouched hops and rest beside damp moss and pond edges; they stay on the ground.
 - Micro Holland Lop bunnies have soft bodies, floppy ears, grazing motions, and small hops.
 - Plant growth starts at **Rapid 12×**, independently of simulation speed. Natural 1×, Quick 6×, and Burst 24× are available.
 - **Daylight locked** is the default. Switch between locked daylight, the natural cycle, and locked moonlight while the clock, weather, and ecosystem keep progressing.
@@ -62,7 +68,7 @@ Open `http://localhost:8080`. Installing npm dependencies is not required simply
 
 The primary website is **https://ilevytate.github.io/Verdant/** and opens directly into the app. Choose **Get app** in the top bar for installation instructions or **Download game files (.zip)**. The ZIP always comes from the current `main` branch and contains the complete app and its assets. Installation is also available in **Care & display**. Chrome and Edge can show their native prompt; the fallback panel explains iPhone/iPad, Android, and Mac installation. Wait for **Ready to play offline** before disconnecting. The first complete cache is roughly 9 MB. Installed and browser play use local device storage; use world export/import to transfer saves between hosts or devices.
 
-The service worker intercepts only the game's own static shell, not API routes, account data, downloads, or other projects on the same origin. Updates keep one complete release together until you choose **Update app**. When releasing future changes, bump the cache version in `sw.js`.
+The service worker intercepts only the game's own static shell, not API routes, account data, downloads, or other projects on the same origin. Updates keep one complete release together until you choose **Update app**. Before committing runtime changes, run `npm run release:cache`. It fingerprints the complete offline game; `npm run check` rejects a stale fingerprint, so runtime updates cannot accidentally reuse the previous release cache unnoticed.
 
 ## Mobile controls
 
@@ -86,6 +92,8 @@ This is an illustrative game, not a biological or fluid-dynamics model. The tiny
 
 ## Saves and settings
 
+App updates reuse `verdant-world-v1`; they do not regenerate the landscape or clear browser storage. Saving keeps the previous valid world, and accepting an update creates a separate checkpoint before activation. If loading fails, Verdant offers a raw download, backup restoration, retry, or import of a previously exported world. The unreadable original is preserved during an explicit recovery. Conflicting saves from another tab stop the stale write and ask you to export or reload. These protections do not replace exporting important worlds or prevent browser/OS storage eviction.
+
 Worlds save automatically in the current browser. New world offers JSON export and validated import for moving between devices or hosting domains. Earlier saved layouts are preserved and gain the rapid-growth and daylight-lock defaults if those settings are missing.
 
 The procedural terrain and growth simulation runs while the page is visible. Pet Care needs catch up from the last saved timestamp when you return, including offline. Self-sustaining worlds remain safe while away. Earlier saves default to Self-sustaining to avoid retroactive neglect. The scene limit is 220 elements, and natural spreading is capped at thirty offspring.
@@ -94,6 +102,7 @@ The procedural terrain and growth simulation runs while the page is visible. Pet
 
 ```
 npm ci
+npm run release:cache
 npm run check
 npm test
 npm run test:scene

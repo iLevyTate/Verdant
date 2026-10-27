@@ -29,7 +29,7 @@
     snail:{name:'Garden snail',label:'Snail',category:'life',description:'A very slow explorer. Happiest when the ground is comfortably damp.',creature:true},
     firefly:{name:'Little firefly',label:'Firefly',category:'life',description:'A wandering spark. Watch your world at night to see it glow.',creature:true},
     bee:{name:'Bumblebee',label:'Bumblebee',category:'life',description:'A round, fuzzy little pollinator. Follows blooms and carries a dusting of golden pollen.',creature:true,scale:.95},
-    frog:{name:'Little tree frog',label:'Tree frog',category:'life',description:'A bright-eyed leaf dweller. Hops through moss and rests on low tree branches.',creature:true,scale:.9},
+    frog:{name:'Garden frog',label:'Frog',category:'life',description:'A speckled little ground dweller. Takes short hops and rests beside damp moss and pond edges.',creature:true,scale:.9},
     bunny:{name:'Micro Holland Lop',label:'Holland Lop',category:'life',description:'A tiny, soft-footed bunny with floppy ears. Explores clover, grazes, and takes very small hops.',creature:true,scale:.9},
     ladybug:{name:'Spotted ladybug',label:'Ladybug',category:'life',description:'A bright little beetle that wanders through the undergrowth.',creature:true},
     crystal:{name:'Quartz cluster',label:'Crystal',category:'terrain',description:'A little wonder from deep in the earth. Catches the afternoon light.',decoration:true},
@@ -103,7 +103,16 @@
     return{kind,name:names[kind],rain,light,wind:.35+noise((s.day*24+s.clock)*.12,5,hash(s.seed)+756)*.65,season:phase.name};
   }
   function habitatTarget(e,s){
-    const preferences=e.type==='bee'||e.type==='butterfly'||e.type==='ladybug'?['flower']:e.type==='bunny'?['clover','grass','moss']:e.type==='frog'?['tree','moss','log']:e.type==='snail'?['log']:['moss'];
+    if(e.type==='frog'&&s.water>0){
+      let shore=null,best=Infinity;
+      for(const radius of[0,.5,1,1.8])for(let i=0;i<(radius?16:1);i++){
+        const angle=i/16*Math.PI*2,x=e.x+Math.cos(angle)*radius,z=e.z+Math.sin(angle)*radius,h=heightAt(x,z,s);
+        if(Math.hypot(x,z)>4.2||h<s.water+.05||h>s.water+.35)continue;
+        const score=radius+Math.abs(h-s.water-.16)*2;if(score<best){best=score;shore={type:'shore',x,z,growth:1};}
+      }
+      if(shore)return shore;
+    }
+    const preferences=e.type==='bee'||e.type==='butterfly'||e.type==='ladybug'?['flower']:e.type==='bunny'?['clover','grass','moss']:e.type==='frog'?['moss','grass']:e.type==='snail'?['log']:['moss'];
     let target=e,best=e.type==='bee'||e.type==='butterfly'?2.4:3.2;for(const type of preferences){for(const p of s.entities)if(p.type===type){const d=distance(e,p);if(d<best){best=d;target=p;}}if(target!==e)break;}return target;
   }
   function localConditions(x,z,s){
@@ -128,7 +137,7 @@
   }
   function relocate(s,id,x,z){const e=s.entities.find(e=>e.id===id);if(!e)return{ok:false,reason:'Choose an element to move.'};const check=placement(s,e.type,x,z,id);if(!check.ok)return check;e.x=x;e.z=z;return{ok:true,entity:e,events:updateProgress(s)};}
   function remove(s,id){const i=s.entities.findIndex(e=>e.id===id);if(i<0)return 0;const e=s.entities[i],refund=Math.floor((e.paid||0)*.5);s.seeds=clamp(s.seeds+refund,0,9999);s.entities.splice(i,1);return refund;}
-  function sculpt(s,x,z,type,radius,amount=.08){const average=heightAt(x,z,s);let changed=false;for(let i=0;i<s.heights.length;i++){const p=vertexPoint(i),r=p.ring/GRID_RINGS*RADIUS,d=Math.hypot(p.x-x,p.z-z);if(d>radius||r>RADIUS-.06)continue;const f=(1-d/radius)**2,old=s.heights[i];if(type==='raise')s.heights[i]=clamp(old+amount*f,.12,2.9);if(type==='lower')s.heights[i]=clamp(old-amount*f,.12,2.9);if(type==='smooth')s.heights[i]=old+(average-old)*f*.22;if(type==='pond'){s.water=s.baseWater=Math.max(s.water,.52);s.heights[i]=Math.max(.12,old-(Math.max(.25,old-.19))*f*.5);if(s.soil)s.soil[i]=Math.max(s.soil[i],.80);}if(Math.abs(s.heights[i]-old)>1e-6)changed=true;}if(changed)s.terrainRevision++;return changed;}
+  function sculpt(s,x,z,type,radius,amount=.08){if(!['raise','lower','smooth','pond'].includes(type)||![x,z,radius,amount].every(Number.isFinite)||radius<=0||amount<=0)return false;const source=type==='smooth'?s.heights.slice():null;let changed=false;for(let i=0;i<s.heights.length;i++){const p=vertexPoint(i),r=p.ring/GRID_RINGS*RADIUS,d=Math.hypot(p.x-x,p.z-z);if(d>radius||r>RADIUS-.06)continue;const f=(1-d/radius)**2,old=s.heights[i];if(type==='raise')s.heights[i]=clamp(old+amount*f,.12,2.9);if(type==='lower')s.heights[i]=clamp(old-amount*f,.12,2.9);if(type==='smooth'){const nearby=neighbors(i),average=(source[i]+nearby.reduce((sum,j)=>sum+source[j],0))/(nearby.length+1);s.heights[i]=old+(average-old)*f*.34;}if(type==='pond'){s.water=s.baseWater=Math.max(s.water,.52);s.heights[i]=Math.max(.12,old-(Math.max(.25,old-.19))*f*.5);if(s.soil)s.soil[i]=Math.max(s.soil[i],.80);}if(Math.abs(s.heights[i]-old)>1e-6)changed=true;}if(changed)s.terrainRevision++;return changed;}
   function newCare(){return{food:.95,water:.95,clean:.95,vitality:1,alive:true,ageHours:0};}
   function careStatus(s){const p=s.careState||newCare();if(s.careMode!=='pet')return 'Self-sustaining';if(!p.alive)return 'Life lost';if(p.vitality<.3)return 'Critical';const low=Math.min(p.food,p.water,p.clean);return low<.25?'Needs you':low<.55?'Check in soon':'Content';}
   // Care uses real hours. It is independent of rapid growth, simulation speed, and pause.
@@ -194,9 +203,9 @@
   }
   function validate(o){
     if(!o||![1,2].includes(o.version)||!Object.hasOwn(BIOMES,o.biome)||!Array.isArray(o.heights)||o.heights.length!==1+GRID_RINGS*GRID_SEGMENTS||o.heights.some(x=>!Number.isFinite(x)||x<.1||x>3.2)||!Array.isArray(o.entities)||o.entities.length>MAX_ENTITIES)throw Error('This file is not a valid Verdant world.');
-    const ids=new Set();for(const e of o.entities){if(!Object.hasOwn(ELEMENTS,e.type)||ELEMENTS[e.type].tool||!['x','z','rotation','scale','growth','health','phase','variant','id'].every(k=>Number.isFinite(e[k]))||Math.hypot(e.x,e.z)>RADIUS+.1||e.scale<.1||e.scale>3||e.growth<.1||e.growth>1.3||e.health<0||e.health>1||!Number.isInteger(e.variant)||e.variant<0||e.variant>2||!Number.isInteger(e.id)||e.id<1||ids.has(e.id))throw Error('This world contains invalid elements.');ids.add(e.id);}
+    const ids=new Set();for(const e of o.entities){if(!Object.hasOwn(ELEMENTS,e.type)||ELEMENTS[e.type].tool||!['x','z','rotation','scale','growth','health','phase','variant','id'].every(k=>Number.isFinite(e[k]))||Math.hypot(e.x,e.z)>RADIUS+.1||e.scale<.1||e.scale>3||e.growth<.1||e.growth>1.3||e.health<0||e.health>1||!Number.isInteger(e.variant)||e.variant<0||e.variant>2||!Number.isSafeInteger(e.id)||e.id<1||e.id>=Number.MAX_SAFE_INTEGER-1||ids.has(e.id))throw Error('This world contains invalid elements.');ids.add(e.id);}
     for(const key of ['clock','day','moisture','sun','speed','water','nextId','pondX','pondZ'])if(!Number.isFinite(o[key]))throw Error('This world is missing its climate data.');
-    if(o.moisture<0||o.moisture>1||o.sun<0||o.sun>1||o.clock<0||o.clock>=24||o.day<0||typeof o.seed!=='string'||o.seed.length>32)throw Error('This world has invalid climate data.');
+    if(o.moisture<0||o.moisture>1||o.sun<0||o.sun>1||o.clock<0||o.clock>=24||!Number.isSafeInteger(o.day)||o.day<0||!Number.isSafeInteger(o.nextId)||o.nextId<1||o.nextId>=Number.MAX_SAFE_INTEGER||o.water<-.6||o.water>1.1||typeof o.seed!=='string'||o.seed.length>32)throw Error('This world has invalid climate data.');
     const legacy=o.version===1;o.version=2;o.mode=legacy?'sandbox':o.mode==='sandbox'?'sandbox':'journey';o.quests={plant:!!o.quests?.plant,mist:!!o.quests?.mist,life:!!o.quests?.life};
     const finite=(x,defaultValue,min=0,max=99999)=>Number.isFinite(x)?clamp(x,min,max):defaultValue;o.speed=[1,5,20].includes(o.speed)?o.speed:1;o.lighting=['day','cycle','night'].includes(o.lighting)?o.lighting:'day';o.growthRate=[1,6,12,24].includes(o.growthRate)?o.growthRate:12;o.graphics=['auto','performance','cinematic'].includes(o.graphics)?o.graphics:'auto';o.brush=finite(o.brush,.85,.4,1.5);o.health=finite(o.health,.5,0,1);o.nextId=Math.max(Math.floor(o.nextId),1,...o.entities.map(e=>e.id+1));o.paused=!!o.paused;o.placed=finite(o.placed,0);o.seeds=finite(o.seeds,48,0,9999);o.xp=finite(o.xp,0);o.mission=Math.floor(finite(o.mission,0,0,MISSIONS.length));
     o.discoveries=Array.isArray(o.discoveries)?[...new Set(o.discoveries.filter(k=>Object.hasOwn(DISCOVERIES,k)))]:[];o.seen=Array.isArray(o.seen)?[...new Set(o.seen.filter(k=>Object.hasOwn(ELEMENTS,k)&&!ELEMENTS[k].tool))]:[...new Set(o.entities.map(e=>e.type))];

@@ -1,0 +1,9 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
+const APP=fs.existsSync(path.join(__dirname,'../dist/graphics.js'))?'../dist/':'../';
+const sandbox={BABYLON:{NullEngine:class{}},document:{hidden:false},window:{},console};vm.runInNewContext(fs.readFileSync(require.resolve(APP+'graphics.js'),'utf8'),sandbox);const G=sandbox.window.VerdantGraphics;
+let resolution=.65,changes=0;const world={state:{graphics:'auto'},baseHardwareScale:.65,engine:{getHardwareScalingLevel(){return resolution;},setHardwareScalingLevel(next){resolution=next;changes++;}}};
+for(let i=0;i<500;i++)G.adapt(world,.05);assert(changes>0&&resolution>.65&&resolution<=1.35,'sustained low frame rate reduces pixel load within limits');const reduced=resolution;
+for(let i=0;i<1800;i++)G.adapt(world,1/90);assert(resolution<reduced&&resolution>=.65,'sustained headroom restores resolution, without exceeding the configured device cap');
+world.state.graphics='cinematic';const manual=resolution;for(let i=0;i<500;i++)G.adapt(world,.05);assert.equal(resolution,manual,'automatic tuning must respect manual Cinematic mode');world.state.graphics='performance';G.adapt(world,.05);assert.equal(resolution,manual);
+world.state.graphics='auto';sandbox.document.hidden=true;const performance=JSON.stringify(world.performanceState);G.adapt(world,.05);assert.equal(JSON.stringify(world.performanceState),performance,'background tabs must not downgrade graphics');sandbox.document.hidden=false;G.adapt(world,8);assert.equal(JSON.stringify(world.performanceState),performance,'resume spikes must not downgrade graphics');assert.equal(world.state.graphics,'auto','adaptation must not overwrite the saved quality setting');
+console.log('Passed: bounded automatic render scaling, gradual quality recovery, manual graphics preservation, background/resume behavior, and saved setting preservation.');

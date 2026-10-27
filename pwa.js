@@ -20,7 +20,7 @@
   function deferUpdate(){deferredWorker=registration?.waiting||'reload';$('#updateDialog')?.close();}
   async function applyUpdate(){
     if(!updateReady()||applyingUpdate)return;
-    const saved=window.dispatchEvent(new Event('verdant:save',{cancelable:true}));
+    const saveRequest=new Event('verdant:save',{cancelable:true});saveRequest.checkpoint=true;const saved=window.dispatchEvent(saveRequest);
     if(!saved){const error=$('[data-update-error]');if(error){error.hidden=false;error.textContent='Your world could not be saved. Choose Later and export it from New world. Retry the update once browser storage is available.';}return;}
     applyingUpdate=true;status();$('#updateDialog')?.close();
     if(registration?.waiting)registration.waiting.postMessage({type:'ACTIVATE_UPDATE'});else location.reload();
