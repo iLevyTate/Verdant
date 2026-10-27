@@ -15,7 +15,7 @@
     clover:{name:'Woodland clover',label:'Clover',category:'plants',description:'Little heart-shaped leaves that spread a bit of quiet good fortune.',water:.62,sun:.65,scale:.8},
     flower:{name:'Meadow flowers',label:'Wildflower',category:'plants',description:'A scattering of delicate blooms. Butterflies will feel right at home.',water:.52,sun:.75,scale:.85},
     mushroom:{name:'Golden mushrooms',label:'Mushroom',category:'plants',description:'Tiny golden umbrellas. A damp, shady corner is their favorite place.',water:.78,sun:.32,scale:.8},
-    tree:{name:'Little juniper',label:'Juniper',category:'plants',description:'A miniature tree with a crooked trunk and a wonderfully unruly canopy.',water:.52,sun:.68,scale:1},
+    tree:{name:'Little juniper bonsai',label:'Juniper',category:'plants',description:'A miniature tree with a crooked trunk. Inspect it to trim its canopy into a compact bonsai or let new shoots return.',water:.52,sun:.68,scale:1},
     cactus:{name:'Desert cactus',label:'Cactus',category:'plants',description:'A sun-loving soul. Too much water makes this little cactus unhappy.',water:.20,sun:.90,scale:.95},
     succulent:{name:'Rosette succulent',label:'Succulent',category:'plants',description:'Sculptural leaves that store a little water for a sunny day.',water:.28,sun:.82,scale:.8},
     grass:{name:'Golden grass',label:'Grass',category:'plants',description:'Fine golden blades that catch the light and sway in the breeze.',water:.30,sun:.78,scale:.9},
@@ -36,6 +36,9 @@
     erase:{name:'Make a little space',label:'Remove',category:'terrain',description:'Tap near a plant, creature, or decoration to remove it. Undo brings it back.',tool:true}
   };
   const RADIUS=5.04,GRID_RINGS=32,GRID_SEGMENTS=96,MAX_ENTITIES=220;
+  // The renderer and plant clearance use the same curved vessel, including its narrow rim.
+  const VESSEL_PROFILE=Object.freeze([[-1.30,4.71],[-1.15,4.97],[-.72,5.18],[0,5.30],[1.12,5.40],[2.14,5.37],[3.20,5.19],[4.08,4.92]].map(Object.freeze));
+  function vesselRadius(y){for(let i=1;i<VESSEL_PROFILE.length;i++){const [top,radius]=VESSEL_PROFILE[i],[bottom,previous]=VESSEL_PROFILE[i-1];if(y<=top)return previous+(radius-previous)*clamp((y-bottom)/(top-bottom));}return VESSEL_PROFILE.at(-1)[1];}
   const PLANTS=Object.keys(ELEMENTS).filter(k=>ELEMENTS[k].category==='plants');
   const CREATURES=['bee','frog','bunny','butterfly','snail','firefly','ladybug'];
   const visualHour=s=>s.lighting==='cycle'?s.clock:s.lighting==='night'?21:10.5;
@@ -88,7 +91,7 @@
     if(!Object.hasOwn(BIOMES,biome))biome='woodland';seed=String(seed).slice(0,32)||'240816';const random=rng(seed+biome),bio=BIOMES[biome],landform=profile(seed,biome);
     const water=bio.pond||landform.style==='Rocky oasis'?.52:-.6;
     const s={version:2,seed,biome,day:0,clock:9,moisture:bio.moisture,sun:bio.sun,health:.92,speed:1,paused:false,mode:mode==='sandbox'?'sandbox':'journey',seeds:48,xp:0,mission:0,discoveries:[],seen:[],stats:{planted:0,care:0,sculpted:0,lifeTypes:[],harvested:0,balance:0,bestBalance:0},weather:'auto',lighting:'day',growthRate:12,graphics:'auto',wildGrowth:true,hydroRemainder:0,spreadClock:0,spreadSerial:0,terrainRevision:0,entities:[],heights:[],quests:{plant:false,mist:false,life:false},nextId:1,pondX:1.25+(random()-.5)*1.5,pondZ:-.4+(random()-.5)*1.7,water,baseWater:water,brush:.85,placed:0,landform};
-    s.careMode=careMode==='pet'?'pet':'self';s.careState=newCare();s.careUpdatedAt=0;
+    s.careMode=careMode==='pet'?'pet':'self';s.careState=newCare();s.careUpdatedAt=0;s.glassVisible=true;
     for(let i=0;i<=GRID_RINGS*GRID_SEGMENTS;i++){const p=vertexPoint(i);s.heights.push(terrainHeight(p.x,p.z,s));}s.soil=initialSoil(s);
     const add=(type,x,z,scale=1)=>s.entities.push({id:s.nextId++,type,x,z,rotation:random()*Math.PI*2,scale:scale*(.75+random()*.45),growth:.70+random()*.30,health:.85+random()*.15,variant:Math.floor(random()*3),phase:random()*Math.PI*2,origin:'wild',paid:0,harvest:random()*.25});
     for(let i=0;i<38;i++){const a=random()*Math.PI*2,r=Math.sqrt(random())*4.5,x=Math.cos(a)*r,z=Math.sin(a)*r;if(heightAt(x,z,s)<s.water+.025)continue;let type=bio.species[Math.floor(random()*bio.species.length)];if(type==='tree'&&s.entities.filter(e=>e.type==='tree').length>3)type='fern';if(type==='tree'&&z<-.6)type='clover';add(type,x,z,ELEMENTS[type].scale);}
@@ -137,6 +140,18 @@
   }
   function relocate(s,id,x,z){const e=s.entities.find(e=>e.id===id);if(!e)return{ok:false,reason:'Choose an element to move.'};const check=placement(s,e.type,x,z,id);if(!check.ok)return check;e.x=x;e.z=z;return{ok:true,entity:e,events:updateProgress(s)};}
   function remove(s,id){const i=s.entities.findIndex(e=>e.id===id);if(i<0)return 0;const e=s.entities[i],refund=Math.floor((e.paid||0)*.5);s.seeds=clamp(s.seeds+refund,0,9999);s.entities.splice(i,1);return refund;}
+  function trimBonsai(s,id){
+    const e=s.entities.find(e=>e.id===id);if(e?.type!=='tree')return{ok:false,reason:'Choose a juniper bonsai to trim.'};
+    if(s.careMode==='pet'&&!s.careState.alive)return{ok:false,reason:'Revive your little world before trimming.'};
+    const next=clamp(Math.round(((e.pruning??1)-.16)*100)/100,.52,1);
+    if(next===(e.pruning??1)&&!e.regrowing)return{ok:false,reason:'This bonsai is already at its smallest trim.'};
+    e.pruning=next;e.regrowing=false;return{ok:true,entity:e};
+  }
+  function regrowBonsai(s,id){
+    const e=s.entities.find(e=>e.id===id);if(e?.type!=='tree'||!(e.pruning<1)||e.regrowing)return{ok:false,reason:'This tree is already growing freely.'};
+    if(s.careMode==='pet'&&!s.careState.alive)return{ok:false,reason:'Revive your little world before regrowing.'};
+    e.regrowing=true;return{ok:true,entity:e};
+  }
   function sculpt(s,x,z,type,radius,amount=.08){if(!['raise','lower','smooth','pond'].includes(type)||![x,z,radius,amount].every(Number.isFinite)||radius<=0||amount<=0)return false;const source=type==='smooth'?s.heights.slice():null;let changed=false;for(let i=0;i<s.heights.length;i++){const p=vertexPoint(i),r=p.ring/GRID_RINGS*RADIUS,d=Math.hypot(p.x-x,p.z-z);if(d>radius||r>RADIUS-.06)continue;const f=(1-d/radius)**2,old=s.heights[i];if(type==='raise')s.heights[i]=clamp(old+amount*f,.12,2.9);if(type==='lower')s.heights[i]=clamp(old-amount*f,.12,2.9);if(type==='smooth'){const nearby=neighbors(i),average=(source[i]+nearby.reduce((sum,j)=>sum+source[j],0))/(nearby.length+1);s.heights[i]=old+(average-old)*f*.34;}if(type==='pond'){s.water=s.baseWater=Math.max(s.water,.52);s.heights[i]=Math.max(.12,old-(Math.max(.25,old-.19))*f*.5);if(s.soil)s.soil[i]=Math.max(s.soil[i],.80);}if(Math.abs(s.heights[i]-old)>1e-6)changed=true;}if(changed)s.terrainRevision++;return changed;}
   function newCare(){return{food:.95,water:.95,clean:.95,vitality:1,alive:true,ageHours:0};}
   function careStatus(s){const p=s.careState||newCare();if(s.careMode!=='pet')return 'Self-sustaining';if(!p.alive)return 'Life lost';if(p.vitality<.3)return 'Critical';const low=Math.min(p.food,p.water,p.clean);return low<.25?'Needs you':low<.55?'Check in soon':'Content';}
@@ -195,6 +210,7 @@
     let health=0,n=0;const hour=visualHour(s),daytime=hour>=6&&hour<20?1:.50,growthRate=s.growthRate||12;for(const e of s.entities)if(ELEMENTS[e.type].category==='plants'){
       const c=localConditions(e.x,e.z,s),fit=s.careMode==='self'?Math.max(.82,suitability(e,s,c)):suitability(e,s,c),pollinated=e.type==='flower'?c.pollination:0;
       if(s.careMode!=='pet'||s.careState.alive)e.growth=clamp(e.growth+days*.38*growthRate*fit*(1+c.nutrients+pollinated*.22)*season(s).growth*daytime,.12,1.18);e.health=clamp(fit+(e.health-fit)*Math.exp(-days*.9),s.careMode==='self'?.8:.05,1);
+      if(e.type==='tree'&&e.regrowing&&(s.careMode!=='pet'||s.careState.alive)){e.pruning=clamp(e.pruning+days*.06*growthRate*fit*season(s).growth*daytime,.52,1);if(e.pruning===1)e.regrowing=false;}
       if(e.growth>=.8&&e.health>=.55)e.harvest=clamp((e.harvest||0)+days*growthRate*(.55+fit*.75)*(1+pollinated*.30),0,1);health+=e.health;n++;
     }
     s.health=(n?health/n:.85)*(s.careMode==='pet'?s.careState.vitality:1);for(const e of s.entities)if(ELEMENTS[e.type].creature)e.health=s.careMode==='pet'?s.careState.vitality:1;s.stats.balance=s.health>=.75?s.stats.balance+days:0;s.stats.bestBalance=Math.max(s.stats.bestBalance,s.stats.balance);if(s.careMode!=='pet'||s.careState.alive)s.spreadClock+=days;
@@ -212,9 +228,10 @@
     const stats=o.stats||{};o.stats={planted:finite(stats.planted,o.quests.plant?1:0),care:finite(stats.care,o.quests.mist?1:0),sculpted:finite(stats.sculpted,0),lifeTypes:Array.isArray(stats.lifeTypes)?[...new Set(stats.lifeTypes.filter(k=>Object.hasOwn(ELEMENTS,k)&&ELEMENTS[k].creature))]:[],harvested:finite(stats.harvested,0),balance:finite(stats.balance,0),bestBalance:finite(stats.bestBalance,0)};
     o.careMode=o.careMode==='pet'?'pet':'self';const pet=o.careState||newCare();o.careState={food:finite(pet.food,.95,0,1),water:finite(pet.water,.95,0,1),clean:finite(pet.clean,.95,0,1),vitality:finite(pet.vitality,1,0,1),alive:pet.alive!==false&&pet.vitality!==0,ageHours:finite(pet.ageHours,0,0,87600)};o.careUpdatedAt=finite(o.careUpdatedAt,0,0,Number.MAX_SAFE_INTEGER);
     if(o.soil!==undefined&&(!Array.isArray(o.soil)||o.soil.length!==o.heights.length||o.soil.some(x=>!Number.isFinite(x)||x<0||x>1)))throw Error('This world has invalid soil moisture data.');if(!o.soil)o.soil=initialSoil(o);
-    o.landform=profile(o.seed,o.biome);o.weather=['auto','clear','rain'].includes(o.weather)?o.weather:'auto';o.wildGrowth=o.wildGrowth!==false;o.baseWater=finite(o.baseWater,o.water,-.6,.9);o.hydroRemainder=finite(o.hydroRemainder,0,0,5);o.spreadClock=finite(o.spreadClock,0,0,.65);o.spreadSerial=Math.floor(finite(o.spreadSerial,0));o.terrainRevision=Math.floor(finite(o.terrainRevision,0));
+    o.landform=profile(o.seed,o.biome);o.weather=['auto','clear','rain'].includes(o.weather)?o.weather:'auto';o.wildGrowth=o.wildGrowth!==false;o.glassVisible=o.glassVisible!==false;o.baseWater=finite(o.baseWater,o.water,-.6,.9);o.hydroRemainder=finite(o.hydroRemainder,0,0,5);o.spreadClock=finite(o.spreadClock,0,0,.65);o.spreadSerial=Math.floor(finite(o.spreadSerial,0));o.terrainRevision=Math.floor(finite(o.terrainRevision,0));
+    for(const e of o.entities)if(e.type==='tree'&&((e.pruning!==undefined&&(!Number.isFinite(e.pruning)||e.pruning<.52||e.pruning>1))||(e.regrowing!==undefined&&(typeof e.regrowing!=='boolean'||e.regrowing&&e.pruning===undefined))))throw Error('This world has invalid bonsai trimming data.');
     for(const e of o.entities){e.origin=['wild','player','spread'].includes(e.origin)?e.origin:'wild';e.paid=finite(e.paid,0,0,20);e.harvest=finite(e.harvest,0,0,1);}return o;
   }
-  const api={clamp,hash,rng,noise,BIOMES,ELEMENTS,RADIUS,GRID_RINGS,GRID_SEGMENTS,MAX_ENTITIES,PLANTS,CREATURES,visualHour,COSTS,DISCOVERIES,MISSIONS,RANKS,generate,profile,heightAt,vertexPoint,localConditions,weatherAt,season,habitatTarget,sculpt,suitability,placement,place,relocate,remove,care,newCare,advanceCare,careStatus,setCareMode,recordSculpt,isReady,harvest,rank,missionProgress,updateProgress,advance,validate};
+  const api={clamp,hash,rng,noise,BIOMES,ELEMENTS,RADIUS,VESSEL_PROFILE,vesselRadius,GRID_RINGS,GRID_SEGMENTS,MAX_ENTITIES,PLANTS,CREATURES,visualHour,COSTS,DISCOVERIES,MISSIONS,RANKS,generate,profile,heightAt,vertexPoint,localConditions,weatherAt,season,habitatTarget,sculpt,suitability,placement,place,relocate,remove,trimBonsai,regrowBonsai,care,newCare,advanceCare,careStatus,setCareMode,recordSculpt,isReady,harvest,rank,missionProgress,updateProgress,advance,validate};
   if(typeof module!=='undefined')module.exports=api;else root.TerrariumCore=api;
 })(typeof window!=='undefined'?window:globalThis);

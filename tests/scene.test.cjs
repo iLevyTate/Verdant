@@ -36,6 +36,31 @@ for(let frame=0;frame<2400;frame++){
  const dx=Math.max(box.minimumWorld.x-small.x,small.x-box.maximumWorld.x,0),dz=Math.max(box.minimumWorld.z-small.z,small.z-box.maximumWorld.z,0);
  assert(Math.hypot(dx,dz)>=padding-1e-6,'bunny motion must clear the actual rotated fern geometry');
 }
+// Exercise every actual plant vertex against the curved vessel, including old
+// large/edge-placed saves, high soil, full growth, rotation and wind sway.
+const fitted=C.generate('glass-clearance','woodland','sandbox');fitted.entities=[];fitted.water=-.6;renderer.rebuild(fitted);
+function assertContained(visual){
+ const mesh=visual.root,matrix=mesh.computeWorldMatrix(true),positions=mesh.getVerticesData(B.VertexBuffer.PositionKind);
+ for(let i=0;i<positions.length;i+=3){const p=B.Vector3.TransformCoordinates(new B.Vector3(positions[i],positions[i+1],positions[i+2]),matrix);assert(p.y<=4.016,'foliage must stay below the glass rim');assert(Math.hypot(p.x,p.z)<C.vesselRadius(p.y)-.03,'every transformed plant vertex must clear the curved glass');}
+}
+for(const type of C.PLANTS)for(const variant of[0,1,2]){
+ const e={id:fitted.nextId++,type,x:0,z:0,scale:1,growth:1,health:1,rotation:0,variant,phase:0};fitted.entities.push(e);const visual=renderer.addEntity(e);
+ for(const height of[.2,1.4,3.2])for(const radius of[0,4.88,5.12])for(const scale of[.6,1.5,3])for(const growth of[.4,1.3]){
+  fitted.heights.fill(height);const angle=height+scale+variant;e.x=Math.cos(angle)*radius;e.z=Math.sin(angle)*radius;e.scale=scale;e.growth=growth;e.rotation=angle*.7;renderer.moveEntity(e);visual.root.rotation.z=type==='tree'?0:.04;
+  const original=JSON.stringify(e);renderer.updatePlant(visual,growth);assertContained(visual);assert.equal(JSON.stringify(e),original,'fitting must not change saved coordinates, scale, maturity or identity');
+ }
+ renderer.removeEntity(e.id);fitted.entities.pop();
+}
+fitted.heights.fill(.6);
+assert(renderer.canPlacePlant({type:'tree',x:0,z:0,scale:.6,rotation:0}).ok,'a small bonsai has room to mature');
+assert(!renderer.canPlacePlant({type:'tree',x:4.85,z:0,scale:1.2,rotation:0}).ok,'trunk-only edge placement must be rejected');
+assert(!renderer.canPlacePlant({type:'tree',x:0,z:0,scale:3,rotation:0}).ok,'mature crowns must fit below the rim');
+const tree={id:fitted.nextId++,type:'tree',x:0,z:0,scale:.8,growth:1,health:1,rotation:0,variant:1,phase:0};fitted.entities.push(tree);const bonsai=renderer.addEntity(tree),source=renderer.template('tree',1),originalTemplate=[...source.getVerticesData(B.VertexBuffer.PositionKind)],natural=[...bonsai.root.getVerticesData(B.VertexBuffer.PositionKind)];
+assert(C.trimBonsai(fitted,tree.id).ok);renderer.refreshPlant(tree);const trimmed=bonsai.root.getVerticesData(B.VertexBuffer.PositionKind);assert(Math.max(...trimmed.filter((_,i)=>i%3===1))<Math.max(...natural.filter((_,i)=>i%3===1)),'trimming must actually shorten upper branches');
+for(let i=0;i<natural.length;i+=3)if(natural[i+1]<=.55)assert.deepEqual([...trimmed.slice(i,i+3)],natural.slice(i,i+3),'the lower trunk and roots keep their structure');
+assert.deepEqual([...source.getVerticesData(B.VertexBuffer.PositionKind)],originalTemplate,'one bonsai trim must not alter other trees or the shared model');assertContained(bonsai);
+tree.x=4.7;tree.scale=1.5;tree.pruning=1;renderer.moveEntity(tree);let matrix=bonsai.root.computeWorldMatrix(true),top=-Infinity;for(let i=0;i<natural.length;i+=3)top=Math.max(top,B.Vector3.TransformCoordinates(new B.Vector3(natural[i],natural[i+1],natural[i+2]),matrix).y);const constrainedScale=bonsai.root.scaling.x;C.trimBonsai(fitted,tree.id);renderer.refreshPlant(tree);assert(bonsai.root.scaling.x<=constrainedScale,'a constrained tree must not enlarge its trunk after pruning');matrix=bonsai.root.computeWorldMatrix(true);let trimmedTop=-Infinity;const pruned=bonsai.root.getVerticesData(B.VertexBuffer.PositionKind);for(let i=0;i<pruned.length;i+=3)trimmedTop=Math.max(trimmedTop,B.Vector3.TransformCoordinates(new B.Vector3(pruned[i],pruned[i+1],pruned[i+2]),matrix).y);assert(trimmedTop<top,'trimming must visibly reduce even a glass-constrained crown');assertContained(bonsai);
+const beforeHide=JSON.stringify(fitted.entities);renderer.setGlassVisible(false);assert(renderer.glassMeshes.every(m=>!m.isEnabled()),'glass-free view must hide vessel, all rims and every reflection');assert(renderer.terrain.isEnabled());assert(bonsai.root.isEnabled());assert.equal(JSON.stringify(fitted.entities),beforeHide);fitted.glassVisible=false;renderer.rebuild(fitted);assert(renderer.glassMeshes.every(m=>!m.isEnabled()),'rebuild/history must keep the saved glass view');renderer.setGlassVisible(true);assert(renderer.glassMeshes.every(m=>m.isEnabled()));
 renderer.dispose();
 for(const [width,height,collapsed]of[[390,844,false],[320,667,true],[430,932,false],[844,390,true]]){
  window.innerWidth=width;window.innerHeight=height;document.body.classList.contains=name=>name==='tray-collapsed'&&collapsed;
@@ -47,4 +72,4 @@ for(const [width,height,collapsed]of[[390,844,false],[320,667,true],[430,932,fal
  assert(Math.abs((minY+maxY)/2-(height-viewport.y-viewport.height/2))<8,'glass must be centered between phone controls');
  const target=mobile.camera.target.clone();mobile.lookCloser(mobile.state.entities[0].id);assert.equal(mobile.camera.radius,4.8);mobile.resetCamera();assert(B.Vector3.Distance(mobile.camera.target,target)<.001,'reset must return to the fitted phone target');mobile.dispose();
 }
-console.log('Passed: all three biome scenes, all element models, finite geometry, terrain and lighting, plus fitted glass and close-up/reset cameras on four phone layouts with Babylon NullEngine.');
+console.log('Passed: all biome scenes and element models, actual vertex glass clearance at varied soil/scale/growth/rotation, safe mature placement, isolated bonsai geometry, complete glass visibility, and phone cameras with Babylon NullEngine.');

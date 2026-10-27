@@ -12,6 +12,9 @@ A mobile-first, procedural 3D terrarium game. Build a little world, nurture plan
 
 ## New in this version
 
+- **Plants stay inside the glass:** the full canopy is checked against the vessel's curved sides and narrow rim, including growth, wind, rotation, high soil, and oversized trees in older worlds. Existing saved positions and sizes are retained; their rendered growth is fitted safely. New plantings reserve room for a mature canopy.
+- **Glass-free view:** choose **Care & display → Glass → Glass-free view** (also in Field Guide → Your world). This hides the vessel, every rim, and reflections while keeping the garden intact. The choice saves with the world and supports Undo.
+- **Trim a bonsai:** inspect a juniper, then choose **Trim bonsai**. Three bounded trims shorten upper branches and compact foliage while retaining the roots, lower trunk, health, maturity, and harvest progress. The shape stays held; **Let regrow** gradually restores new shoots with simulation time. Trimming supports Undo and survives save/export/import and app updates.
 - **Existing worlds are kept:** the world key and data schema stay the same. A previous valid save and a separate pre-update checkpoint provide recovery copies. Unreadable or unsupported saves open recovery controls instead of being replaced by a new world. Stale tabs are stopped from silently overwriting newer saved data.
 - **Full element audit:** every placeable element and all three variants are checked; see [QUALITY_AUDIT.md](QUALITY_AUDIT.md). Terrain smoothing now blends local neighbors, interrupted brush strokes commit consistently, and keyboard sunlight changes support Undo. Auto graphics adapts rendering resolution under sustained load and gradually restores it.
 
@@ -74,8 +77,8 @@ The service worker intercepts only the game's own static shell, not API routes, 
 
 - Choose Plants, Terrain, or Life, then tap the soil to place an element. Swipe the tray horizontally to see more choices.
 - Drag to orbit and pinch to zoom. Observe collapses the tray. The handle reopens it.
-- Use the sliders icon for **Care & display**: mist, vent, sunlight, weather, growth speed, lighting lock, and graphics quality.
-- Inspect an element to harvest, move, remove, or open its **Close-up** view. Reset the camera to return to the complete terrarium.
+- Use the sliders icon for **Care & display**: mist, vent, sunlight, weather, growth speed, lighting lock, glass visibility, and graphics quality.
+- Inspect an element to harvest, move, remove, or open its **Close-up** view. Junipers also offer **Trim bonsai** and **Let regrow**. Reset the camera to return to the complete terrarium.
 - Gold rings mark seeds ready to collect. The tray's harvest button collects every ready plant.
 - The sun/moon button cycles Daylight locked → Natural cycle → Moonlight locked. This changes the view rather than skipping time.
 - Pause freezes the procedural simulation. Pet Care needs still follow real time. Growth speed and lighting remain independent of the 1×, 5×, and 20× simulation clock.

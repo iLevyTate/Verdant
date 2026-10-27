@@ -51,6 +51,16 @@ New placement/move previews reject ground animals inside vegetation or other bod
 
 Animal checks cover vegetation and another animal, placement clearance, pause, pet-life loss, 20x stability, relocation/path reset, vessel bounds, and finite transforms. Tests also verify the bunny against a real rotated fern's rendered bounds. Static plant bounds are shared within a frame and distant bounds are excluded from narrow route checks.
 
+## Curved glass clearance, viewing, and bonsai trimming
+
+The earlier trunk-only placement rule did not reserve canopy space. Plant models now have conservative height-band bounds checked against the same curved vessel profile used to render the glass. Growth, current wind tilt, rotation, raised soil, and the narrowed rim are included. Existing overlapping plants are fitted at render time; their saved coordinates, IDs, scale, growth, health, variants, and harvest progress are unchanged. New plant placement/moves reserve healthy mature canopy space. Plant bounds update before animal navigation so routes use the current foliage.
+
+Glass-free view is saved in the world and available in Care & display and Field Guide → Your world. It disables the vessel, all three rims, and all reflection strips together. Soil, wildlife, the plinth, and growth clearance remain active. Rebuild, import, and Undo/redo honor the saved preference.
+
+Inspecting an existing `tree` offers bounded bonsai trims and gradual regrowth. Upper branch height and canopy reach are reshaped on that tree's own geometry; lower trunk and root vertices retain their structure. Three trims hold a compact shape until Let regrow is selected. Trimming does not pay seeds, reduce health, reset maturity, remove a tree, or alter other trees. Optional `pruning`/`regrowing` entity fields preserve compatibility with untrimmed version 1/2 worlds. Growth pause and pet-life loss stop new shoots.
+
+Evidence: `tests/bonsai.test.cjs` verifies shape limits, hold/regrowth, pause/loss, unchanged entity data, and old/new save round trips with backups. `tests/scene.test.cjs` checks every actual transformed plant vertex for all nine species and all three variants across low/high soil, central/edge legacy positions, small/oversized saved scales, seedling/full growth, rotation, and sway. It also checks isolated bonsai geometry and complete glass visibility through rebuilds. Physical-device appearance and interaction checks remain pending.
+
 ## Terrain and editing tools
 
 | Tool | Review and result |
