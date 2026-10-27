@@ -72,10 +72,10 @@
   }
   function bunnyPath(v,x,z,s,obstacles){
     const steps=Math.max(2,Math.ceil(Math.hypot(x-v.x,z-v.z)/.055)),paw=.52*v.entity.scale*.55+.02;
-    let previous=C.heightAt(v.x,v.z,s);const clearances=obstacles.map(o=>bunnyClearance(v.x,v.z,o,paw));
+    let previous=C.heightAt(v.x,v.z,s),previousRadius=Math.hypot(v.x,v.z)+paw;const clearances=obstacles.map(o=>bunnyClearance(v.x,v.z,o,paw));
     for(let i=1;i<=steps;i++){
       const f=i/steps,px=v.x+(x-v.x)*f,pz=v.z+(z-v.z)*f,h=C.heightAt(px,pz,s);
-      if(Math.hypot(px,pz)+paw>4.7||Math.abs(h-previous)>.10)return false;
+      const radius=Math.hypot(px,pz)+paw;if((radius>4.7&&(previousRadius<=4.7||radius>previousRadius+1e-8))||Math.abs(h-previous)>.10)return false;previousRadius=radius;
       for(const [dx,dz]of[[0,0],[paw,0],[-paw,0],[0,paw],[0,-paw]]){const ground=C.heightAt(px+dx,pz+dz,s);if(ground<s.water+.025||Math.abs(ground-h)>.12*(v.entity.scale/.9))return false;}
       for(let j=0;j<obstacles.length;j++){
         const clearance=bunnyClearance(px,pz,obstacles[j],paw);
