@@ -12,6 +12,9 @@ A mobile-first, procedural 3D terrarium game. Build a little world, nurture plan
 
 ## New in this version
 
+- **Smaller, livelier Holland Lops:** 45% smaller in new and existing worlds, with short hop bursts, anticipation, soft landings, grazing beside plants, sniffing pauses, breathing, and springy ear motion. Paths account for rendered vegetation bounds, decorations, other ground animals, pond edges, and steep terrain. Moving an animal resets its old route.
+- **Updates ask first:** checks run at launch, every five minutes while open, when returning to the app, and after reconnecting. A ready update offers **Save & update now** or **Later**. Updates preserve the current release until accepted; failed saving blocks activation and asks you to export your world. If another tab updates, this tab asks before reloading.
+
 - **Install as a PWA** from Care & display or Field Guide → Your world. Supported browsers offer native installation; iPhone/iPad users get Add to Home Screen instructions. PNG launcher icons, a maskable icon, and an Apple touch icon are included.
 - **Offline play** after the first complete online visit. The service worker caches the complete game, engine, and lighting locally, with scope-relative paths for GitHub Pages project URLs. Waiting updates have an explicit Update app button and save before reloading.
 - **Self-sustaining** is the default care mode: plants and wildlife are protected from neglect. Build, experiment, and leave whenever you like.

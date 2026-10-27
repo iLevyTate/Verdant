@@ -139,7 +139,7 @@ class TerrariumWorld{
  showBrush(p,type,radius){if(!p){this.brush.isVisible=false;if(this.preview)this.preview.isVisible=false;return;}this.brush.isVisible=true;const r=['raise','lower','smooth','pond'].includes(type)?radius:.38;this.brush.scaling.set(r*2.5,1,r*2.5);this.brush.position.set(p.x,Math.max(p.y,this.state.water)+.025,p.z);}
  pickEntity(clientX,clientY){const rect=this.canvas.getBoundingClientRect();const hit=this.scene.pick(clientX-rect.left,clientY-rect.top,m=>m.metadata?.entityId!==undefined);return hit?.hit?hit.pickedMesh.metadata.entityId:null;}
  focusEntity(id){this.selectedId=id;this.focus.isVisible=!!id;}
- moveEntity(e){const v=this.visuals.get(e.id);if(v){v.root.position.set(e.x,C.heightAt(e.x,e.z,this.state),e.z);v.root.rotation.y=e.rotation;}}
+ moveEntity(e){const v=this.visuals.get(e.id);if(v){v.x=v.anchorX=e.x;v.z=v.anchorZ=e.z;v.startX=v.endX=e.x;v.startZ=v.endZ=e.z;v.hopIndex=undefined;v.bunny=undefined;v.baseY=C.heightAt(e.x,e.z,this.state)+(e.type==='bunny'?.005:0);v.root.position.set(e.x,v.baseY,e.z);v.root.rotation.set(0,e.rotation,0);if(v.custom)v.root.scaling.setAll(e.scale*(e.type==='bunny'?.55:1));}}
  showPreview(p,type,rotation,size,valid=true,existing=null){
   this.showBrush(p,type,.85);if(!p)return;const def=C.ELEMENTS[type];this.brush.material.emissiveColor=color(valid?'#a4bd79':'#c18d74').scale(.4);
   if(!def||def.tool||def.creature){if(this.preview)this.preview.isVisible=false;return;}

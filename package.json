@@ -9,7 +9,7 @@
   "scripts": {
     "start": "node scripts/serve.mjs",
     "check": "node --check core.js && node --check world.js && node --check game.js && node --check creatures.js && node --check graphics.js && node --check pwa.js && node --check sw.js",
-    "test": "node tests/core.test.cjs && node tests/gameplay.test.cjs && node tests/wildlife.test.cjs && node tests/care.test.cjs && node tests/pwa.test.cjs",
+    "test": "node tests/core.test.cjs && node tests/gameplay.test.cjs && node tests/wildlife.test.cjs && node tests/care.test.cjs && node tests/pwa.test.cjs && node tests/bunny.test.cjs && node tests/updates.test.cjs",
     "test:scene": "node tests/scene.test.cjs"
   },
   "devDependencies": {

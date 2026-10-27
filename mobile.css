@@ -32,3 +32,5 @@
 .get-app-options{margin:22px 0 12px;padding:18px;border:1px solid #d9e2cf;border-radius:12px;background:#f3f6ed}.get-app-options .primary-btn{margin:0 0 12px}.game-download{display:flex;align-items:center;justify-content:center;min-height:48px;padding:12px 16px;border-radius:9px;background:#3d614d;color:#fff;text-decoration:none;font-size:14px;font-weight:600;text-align:center}.download-note{font-size:12px;line-height:1.65;margin:12px 0 0}.download-status{font-size:12px;color:#657a55}
 @media(max-width:900px){.topbar{gap:8px}.top-actions #saveBtn{display:none}.top-actions .get-app-btn{padding:8px 9px;font-size:11px;min-width:58px}.brand{font-size:26px;gap:6px}}
 @media(max-width:360px){.brand .brand-mark{display:none}.brand{font-size:25px}.topbar{padding:0 10px}.top-actions .icon-btn{width:40px}}
+
+.update-actions{display:grid;gap:12px;margin-top:24px}.update-actions .primary-btn{margin:0}.update-later{min-height:46px;border:1px solid #cdd9c4;border-radius:9px;padding:12px;font-size:14px}.update-later:focus-visible{outline:2px solid #64966e;outline-offset:3px}[data-update-error]{color:#8d4938;font-size:13px;line-height:1.6}
