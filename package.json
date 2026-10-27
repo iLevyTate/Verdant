@@ -1,0 +1,18 @@
+{
+  "name": "verdant-terrarium",
+  "version": "3.0.0",
+  "private": true,
+  "description": "Mobile-first procedural terrarium game with rapid growth and miniature wildlife",
+  "dependencies": {
+    "babylonjs": "8.32.0"
+  },
+  "scripts": {
+    "start": "node scripts/serve.mjs",
+    "check": "node --check core.js && node --check world.js && node --check game.js && node --check creatures.js && node --check graphics.js && node --check pwa.js && node --check sw.js",
+    "test": "node tests/core.test.cjs && node tests/gameplay.test.cjs && node tests/wildlife.test.cjs && node tests/care.test.cjs && node tests/pwa.test.cjs",
+    "test:scene": "node tests/scene.test.cjs"
+  },
+  "devDependencies": {
+    "@napi-rs/canvas": "0.1.100"
+  }
+}

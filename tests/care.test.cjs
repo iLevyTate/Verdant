@@ -1,0 +1,16 @@
+const assert=require('node:assert/strict');
+const APP=require('node:fs').existsSync(require('node:path').join(__dirname,'../dist/core.js'))?'../dist/':'../';
+const C=require(APP+'core.js');
+const clone=s=>C.validate(JSON.parse(JSON.stringify(s)));
+const pet=C.generate('care','woodland','journey','pet'),fast=clone(pet);
+fast.speed=20;fast.growthRate=24;fast.paused=true;
+C.advanceCare(pet,12);C.advanceCare(fast,12);assert.deepEqual(pet.careState,fast.careState,'care must use real hours, independently of pause and simulation speed');
+assert(pet.careState.food<.7&&pet.careState.water<.6);assert.equal(C.careStatus(pet),'Content');
+C.advanceCare(pet,12);assert.equal(C.careStatus(pet),'Needs you');C.care(pet,'feed');C.care(pet,'mist');C.care(pet,'tidy');assert.equal(pet.careState.food,1);assert.equal(pet.careState.water,1);assert.equal(pet.careState.clean,1);
+for(let day=0;day<10;day++)for(let check=0;check<2;check++){C.advanceCare(pet,12);for(const action of['feed','mist','tidy'])C.care(pet,action);}assert(pet.careState.alive&&pet.careState.vitality>.9,'regular upkeep must keep the world alive');
+const neglected=C.generate('neglect','woodland','journey','pet');const events=C.advanceCare(neglected,120);assert(!neglected.careState.alive);assert.equal(neglected.careState.vitality,0);assert(events.some(e=>e.type==='care'));assert.equal(C.careStatus(neglected),'Life lost');assert.equal(C.advanceCare(neglected,1).length,0,'death should announce once');
+const layout=neglected.entities.map(e=>[e.id,e.type,e.x,e.z]),seeds=neglected.seeds;C.care(neglected,'revive');assert(neglected.careState.alive);assert.equal(neglected.careState.vitality,1);assert.deepEqual(neglected.entities.map(e=>[e.id,e.type,e.x,e.z]),layout);assert.equal(neglected.seeds,seeds,'revival must preserve the design and economy');
+const safe=C.generate('safe');C.advanceCare(safe,5000);assert(safe.careState.alive&&safe.careState.vitality===1);safe.soil.fill(.03);safe.sun=1;safe.weather='clear';safe.entities.forEach(e=>e.health=.1);for(let i=0;i<30;i++)C.advance(safe,10);assert(safe.entities.filter(e=>!C.ELEMENTS[e.type].decoration).every(e=>e.health>=.8),'self-sustaining must protect poorly matched plants and creatures without upkeep');
+const before=safe.entities.map(e=>[e.id,e.type,e.x,e.z]);assert(C.setCareMode(safe,'pet'));assert.equal(safe.careState.food,.95);assert.deepEqual(safe.entities.map(e=>[e.id,e.type,e.x,e.z]),before);assert(!C.setCareMode(safe,'pet'));assert(C.setCareMode(safe,'self'));assert.equal(C.careStatus(safe),'Self-sustaining');
+safe.careMode='pet';safe.careUpdatedAt=1720000000000;safe.careState.food=.3;const restored=clone(safe);assert.equal(restored.careUpdatedAt,safe.careUpdatedAt);assert.equal(restored.careState.food,.3);const old=clone(safe);delete old.careMode;delete old.careState;delete old.careUpdatedAt;const migrated=clone(old);assert.equal(migrated.careMode,'self');assert(migrated.careState.alive);const invalid=clone(safe);invalid.careState={food:NaN,water:-1,clean:5,vitality:0};const cleaned=clone(invalid);assert.equal(cleaned.careState.water,0);assert.equal(cleaned.careState.clean,1);assert(!cleaned.careState.alive);
+console.log('Passed: real-time care, unattended decline, twice-daily upkeep, death and revival, self-sustaining protection, non-destructive mode switching, and save migration.');

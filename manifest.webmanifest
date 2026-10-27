@@ -1,0 +1,36 @@
+{
+  "name": "Verdant \u2014 A little world of your own",
+  "short_name": "Verdant",
+  "description": "Build a procedural terrarium, care for a living pet world, or relax in a self-sustaining garden.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ecede4",
+  "theme_color": "#3d614d",
+  "icons": [
+    {
+      "src": "assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "id": "./",
+  "categories": [
+    "games",
+    "entertainment"
+  ],
+  "prefer_related_applications": false
+}
