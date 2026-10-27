@@ -2,7 +2,7 @@
 'use strict';
 const BASE=new URL('./',self.location.href);
 const PREFIX='verdant:'+BASE.pathname+':';
-const CACHE=PREFIX+'v3.2';
+const CACHE=PREFIX+'v3.3';
 const FILES=['index.html','style.css?v=3','enhancements.css?v=3','mobile.css?v=3','core.js?v=3','graphics.js?v=3','creatures.js?v=3','world.js?v=3','game.js?v=3','pwa.js?v=3','vendor/babylon.js','manifest.webmanifest','assets/studio.env','assets/verdant-logo.png','assets/icon.svg','assets/icon-192.png','assets/icon-512.png','assets/icon-maskable-512.png','assets/apple-touch-icon.png'];
 const PATHS=new Set(FILES.map(file=>new URL(file,BASE).pathname));
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(FILES.map(file=>new Request(new URL(file,BASE),{cache:'reload'}))))));

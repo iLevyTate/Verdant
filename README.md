@@ -2,7 +2,7 @@
 
 <p align="center"><img src="assets/verdant-logo.png" width="150" alt="Verdant terrarium logo"></p>
 
-[Play Verdant](https://ilevytate.github.io/Verdant/) · [Social preview image](assets/verdant-social.jpg)
+[Play Verdant](https://ilevytate.github.io/Verdant/) · [Download game ZIP](https://github.com/iLevyTate/Verdant/archive/refs/heads/main.zip) · [Social preview image](assets/verdant-social.jpg)
 
 ![Verdant — A little world of your own](assets/verdant-social.jpg)
 
@@ -57,7 +57,7 @@ Open `http://localhost:8080`. Installing npm dependencies is not required simply
 
 ## Install and play offline
 
-Open the published HTTPS game in your browser. In **Care & display**, choose **Install / add to home screen**. Chrome and Edge can show their native prompt; the fallback panel explains iPhone/iPad, Android, and Mac installation. Wait for **Ready to play offline** before disconnecting. The first complete cache is roughly 8 MB. Installed and browser play use local device storage; use world export/import to transfer saves between hosts or devices.
+The primary website is **https://ilevytate.github.io/Verdant/** and opens directly into the app. Choose **Get app** in the top bar for installation instructions or **Download game files (.zip)**. The ZIP always comes from the current `main` branch and contains the complete app and its assets. Installation is also available in **Care & display**. Chrome and Edge can show their native prompt; the fallback panel explains iPhone/iPad, Android, and Mac installation. Wait for **Ready to play offline** before disconnecting. The first complete cache is roughly 9 MB. Installed and browser play use local device storage; use world export/import to transfer saves between hosts or devices.
 
 The service worker intercepts only the game's own static shell, not API routes, account data, downloads, or other projects on the same origin. Updates keep one complete release together until you choose **Update app**. When releasing future changes, bump the cache version in `sw.js`.
 
