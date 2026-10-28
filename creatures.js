@@ -4,9 +4,7 @@
   const rgb=h=>{const c=B.Color3.FromHexString(h);return[c.r,c.g,c.b];};
   const ease=t=>t*t*(3-2*t);
   const FLYERS=new Set(['bee','butterfly','firefly']);
-  const renderScale=e=>e.scale*(e.type==='bunny'?.55:e.type==='snail'?.95:['butterfly','ladybug','firefly'].includes(e.type)?1.15:1);
-  const animalRadius=e=>({bunny:.52,frog:.47,snail:.38,ladybug:.25,bee:.46,butterfly:.38,firefly:.12}[e.type]||.3)*renderScale(e);
-  const animalHeight=e=>({bunny:.82,frog:.48,snail:.44,ladybug:.19,bee:.23,butterfly:.25,firefly:.10}[e.type]||.4)*renderScale(e);
+  const {renderScale,animalRadius,animalHeight}=C;
   function create(e,scene,context){
     const G=context.Geometry,node=new B.TransformNode(e.type+'-'+e.id,scene),parts={};
     const material=root.VerdantGraphics?.creatureMaterial(scene,e.type)||context.material;
@@ -53,13 +51,13 @@
   }
   // Use rendered plant bounds so growth, scale, and rotation affect clearance.
   function animalObstacles(v,s,world,flight=false){
-    const obstacles=[],fallback={fern:1.4,moss:.85,clover:.85,flower:.82,mushroom:.80,tree:1.3,grass:.78,cactus:.58,succulent:.70,rock:.80,log:1.0,crystal:.65};
+    const obstacles=[],floor=C.heightAt(v.x,v.z,s),fallback={fern:1.4,moss:.85,clover:.85,flower:.82,mushroom:.80,tree:1.3,grass:.78,cactus:.58,succulent:.70,rock:.80,log:1.0,crystal:.65};
     for(const e of s.entities){
       if(e.id===v.entity.id)continue;
       const visual=world.visuals?.get(e.id),mesh=visual?.root,position=mesh?.position||e;
       if(C.ELEMENTS[e.type]?.creature){
         const flying=FLYERS.has(e.type),r=animalRadius(e),h=animalHeight(e),y=position.y??C.heightAt(e.x,e.z,s),minY=flying?y-h:y,maxY=y+h;
-        const floor=C.heightAt(v.x,v.z,s);if(!flight&&(minY>floor+animalHeight(v.entity)+.35||maxY<floor))continue;
+        if(!flight&&(minY>floor+animalHeight(v.entity)+.35||maxY<floor))continue;
         obstacles.push({id:e.id,minX:position.x-r,maxX:position.x+r,minZ:(position.z??e.z)-r,maxZ:(position.z??e.z)+r,minY,maxY});
       }else if(mesh?.getBoundingInfo){
         let bounds=world.navigationBounds?.get(e.id);
@@ -79,11 +77,11 @@
   }
   function groundPath(v,x,z,s,obstacles){
     const steps=Math.max(2,Math.ceil(Math.hypot(x-v.x,z-v.z)/.055)),paw=animalRadius(v.entity)+.02;
-    let previous=C.heightAt(v.x,v.z,s),previousRadius=Math.hypot(v.x,v.z)+paw;const clearances=obstacles.map(o=>clearance2D(v.x,v.z,o,paw));
+    let previous=C.heightAt(v.x,v.z,s),previousRadius=Math.hypot(v.x,v.z)+paw,terrainPenalty=C.terrainPenalty(v.entity,v.x,v.z,s);const clearances=obstacles.map(o=>clearance2D(v.x,v.z,o,paw));
     for(let i=1;i<=steps;i++){
       const f=i/steps,px=v.x+(x-v.x)*f,pz=v.z+(z-v.z)*f,h=C.heightAt(px,pz,s);
       const radius=Math.hypot(px,pz)+paw;if((radius>4.7&&(previousRadius<=4.7||radius>previousRadius+1e-8))||Math.abs(h-previous)>.10)return false;previousRadius=radius;
-      for(const [dx,dz]of[[0,0],[paw,0],[-paw,0],[0,paw],[0,-paw]]){const ground=C.heightAt(px+dx,pz+dz,s);if(ground<s.water+.025||Math.abs(ground-h)>.12*(v.entity.scale/.9))return false;}
+      const penalty=C.terrainPenalty(v.entity,px,pz,s);if(penalty>1e-8&&(terrainPenalty<=1e-8||penalty>terrainPenalty+1e-6))return false;terrainPenalty=penalty;
       for(let j=0;j<obstacles.length;j++){
         const clearance=clearance2D(px,pz,obstacles[j],paw);
         // A newly planted or moved object may enclose an animal: permit escape only.
@@ -247,7 +245,7 @@
   }
   function animate(v,dt,s,world){
     const e=v.entity,delta=s.paused||(s.careMode==='pet'&&!s.careState.alive)?0:Math.min(Math.max(dt,0),.05)*Math.sqrt(s.speed);
-    if(!delta)return;
+    if(!delta||world.motionReduced)return;
     if(!Number.isFinite(v.x)){v.x=e.x;v.z=e.z;}if(!Number.isFinite(v.time))v.time=e.phase||0;v.time+=delta;
     if(e.type==='bunny')animateBunny(v,delta,s,world);
     else if(FLYERS.has(e.type))animateFlight(v,delta,s,world);

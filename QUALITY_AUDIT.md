@@ -21,6 +21,24 @@ This is a code, geometry, and automated behavior audit. It is not a claim that v
 
 Evidence: `tests/saves.test.cjs`, existing migration/care tests, and offline/update lifecycle tests. Test cases include valid legacy/current worlds, corrupted JSON, a future unsupported schema, quota failure, disabled storage, backup-only recovery, explicit import recovery, and a stale second tab.
 
+## Follow-up corrections and release acceptance
+
+The follow-up review found gaps beyond the original test coverage. This release addresses them as follows:
+
+| Finding | Implemented correction and evidence |
+| --- | --- |
+| Phone save errors were only temporarily visible | A persistent alert offers export/retry and, for a conflict, a deliberate load-saved-copy confirmation. It stays visible after the toast expires. Autosave failures retry at a bounded interval. `tests/mobile-ui.test.cjs` exercises the real markup and handlers. |
+| Generated animals could fail their own placement rules | New generation chooses suitable homes and thins only its newly generated obstacles as needed. Saved-world validation never runs generation. Exact rendered placement checks cover all initial animals in twelve seed/biome scenes. |
+| Objects could be planted over wildlife | Core mature-footprint checks and renderer object/body checks cover reverse placement, including flying animals. Live positions are held outside the serialized state; self-seeding checks them too. Existing overlaps may escape without moving saved anchors. |
+| Footing differed from drawn slopes | Height queries now sample the same triangles as the mesh, with cached geometric coefficients. Precision ray checks compare 2,000 points before/after sculpting; picking tolerance is tightened for the test. Mesh height revisions refresh before animal movement. |
+| Fixed close-up framing cropped models | Targets and distance derive from complete selected bounds and the current viewport. All selected models are projected inside four phone layouts. Details close for a clear view; selected animals are followed. |
+| Bonsai trimming only affected appearance | Shade radius and protection against drying respond to pruning and gradual regrowth. Core tests compare local light and soil outcomes. |
+| Rain depended on frame rate | Elapsed-time movement gives equal travel at 30 and 120 Hz. Calm view honors explicit or device reduced-motion preferences and keeps growth/care clocks active. |
+| Update detection needed an obvious completion path | Manual checks/status are in Care and Get app; a ready header button survives Later. Confirmation saves/checkpoints, activates the waiting worker, then saves/reloads when controlled. Save failures, network failures, and stalled activation remain recoverable. |
+| Recovery needed more history | Up to five dated points within a 768,000-character data budget supplement the original backup/checkpoint/recovery keys. Optional history failure cannot break a successful primary save. Oversized points do not discard existing history. Restore retains the displaced raw world. |
+
+Additional acceptance coverage is in `tests/polish.test.cjs`, `tests/mobile-ui.test.cjs`, and the expanded scene/update suites. The DOM tests substitute rendering and do not certify actual mobile layout or GPU output. Headless density measurements and the physical-device checklist are documented separately in `BENCHMARK_BASELINE.md` and `MOBILE_QA.md`.
+
 ## Every placeable element
 
 All 19 placeable elements receive placement, relocation, size/rotation retention, removal, invalid-position, save round-trip, and three-variant checks. All plant species receive growth and single-use harvest checks. Every rendered species/variant is constructed with the real Babylon NullEngine and checked for finite geometry, valid indices, and finite normals.

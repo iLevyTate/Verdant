@@ -85,18 +85,56 @@
     const get=(ring,seg)=>ring===0?values[0]:values[1+(Math.min(GRID_RINGS,ring)-1)*GRID_SEGMENTS+((seg+GRID_SEGMENTS)%GRID_SEGMENTS)];
     return(get(i,j)*(1-t)+get(i,j+1)*t)*(1-f)+(get(i+1,j)*(1-t)+get(i+1,j+1)*t)*f;
   }
-  const heightAt=(x,z,s)=>sampleGrid(s.heights,x,z);
+  // Match the actual polar mesh triangles, rather than bilinear polar heights.
+  // Soil remains a smoothly sampled field; feet and shorelines use this surface.
+  const surfaceFaces=[];
+  function surfaceFace(a,b,d){
+    const A=vertexPoint(a),B=vertexPoint(b),D=vertexPoint(d),den=(B.z-D.z)*(A.x-D.x)+(D.x-B.x)*(A.z-D.z),ux=(B.z-D.z)/den,uz=(D.x-B.x)/den,vx=(D.z-A.z)/den,vz=(A.x-D.x)/den;
+    return[a,b,d,ux,uz,-ux*D.x-uz*D.z,vx,vz,-vx*D.x-vz*D.z];
+  }
+  function surfaceAt(values,x,z){
+    const distance=Math.hypot(x,z);if(distance<1e-10)return values[0];
+    const step=Math.PI*2/GRID_SEGMENTS,angle=(Math.atan2(z,x)+Math.PI*2)%(Math.PI*2),seg=Math.floor(angle/step),radialStep=RADIUS/GRID_RINGS*Math.cos(step/2)/Math.cos(angle-seg*step-step/2),ring=Math.min(GRID_RINGS-1,Math.floor(distance/radialStep)),factor=Math.min(1,GRID_RINGS*radialStep/distance),px=x*factor,pz=z*factor,key=ring*GRID_SEGMENTS+seg;
+    let faces=surfaceFaces[key];if(!faces){const at=(n,j)=>n===0?0:1+(n-1)*GRID_SEGMENTS+(j+GRID_SEGMENTS)%GRID_SEGMENTS,A=at(ring,seg),B=at(ring,seg+1),D=at(ring+1,seg);faces=surfaceFaces[key]=ring===0?[surfaceFace(0,at(1,seg+1),at(1,seg))]:[surfaceFace(A,B,D),surfaceFace(B,at(ring+1,seg+1),D)];}
+    let face=faces[0],u=face[3]*px+face[4]*pz+face[5],v=face[6]*px+face[7]*pz+face[8];if(faces[1]&&(u<-1e-8||v<-1e-8||u+v>1+1e-8)){face=faces[1];u=face[3]*px+face[4]*pz+face[5];v=face[6]*px+face[7]*pz+face[8];}
+    return u*values[face[0]]+v*values[face[1]]+(1-u-v)*values[face[2]];
+  }
+  const heightAt=(x,z,s)=>surfaceAt(s.heights,x,z);
+  const renderScale=e=>e.scale*(e.type==='bunny'?.55:e.type==='snail'?.95:['butterfly','ladybug','firefly'].includes(e.type)?1.15:1);
+  const animalRadius=e=>({bunny:.52,frog:.47,snail:.38,ladybug:.25,bee:.46,butterfly:.38,firefly:.12}[e.type]||.3)*renderScale(e);
+  const animalHeight=e=>({bunny:.82,frog:.48,snail:.44,ladybug:.19,bee:.23,butterfly:.25,firefly:.10}[e.type]||.4)*renderScale(e);
+  const objectRadius=e=>({fern:1.9,moss:1.0,clover:1.1,flower:1.1,mushroom:1.0,tree:2.2,grass:1.0,cactus:.85,succulent:.85,rock:1.15,log:1.35,crystal:.85}[e.type]||1)*e.scale*(ELEMENTS[e.type].category==='plants'?1.18:1);
+  const movingAnimals=new WeakMap();
+  function setAnimalPositions(s,positions){movingAnimals.set(s,new Map(positions.map(p=>[p.id,{x:p.x,y:p.y,z:p.z}])));}
+  const animalPosition=(e,s)=>movingAnimals.get(s)?.get(e.id)||e;
+  function terrainPenalty(e,x,z,s){const paw=animalRadius(e)+.025,h=heightAt(x,z,s);let penalty=0;for(const [dx,dz]of[[0,0],[paw,0],[-paw,0],[0,paw],[0,-paw]]){const y=heightAt(x+dx,z+dz,s);penalty=Math.max(penalty,s.water+.025-y,Math.abs(y-h)-.12*(e.scale/.9));}return penalty;}
+  // Only used when generating a NEW world. Existing saves never pass through it.
+  function seedCreatureHomes(s){
+    const placed=[],animals=s.entities.filter(e=>ELEMENTS[e.type].creature);
+    for(const e of animals){
+      const flying=['bee','butterfly','firefly'].includes(e.type),r=animalRadius(e)+.07,random=rng(s.seed+' home '+e.id);let best=null;
+      for(let i=0;i<500;i++){
+        const angle=random()*Math.PI*2,d=Math.sqrt(random())*(4.45-r),x=i?Math.cos(angle)*d:e.x,z=i?Math.sin(angle)*d:e.z,h=heightAt(x,z,s);
+        if(Math.hypot(x,z)+r>4.65||(!flying&&terrainPenalty(e,x,z,s)>0)||flying&&Math.max(h,s.water)+(e.type==='butterfly'?1.15:.75)+animalRadius(e)>3.8)continue;
+        if(placed.some(p=>distance({x,z},p)<r+animalRadius(p)+.12))continue;
+        const blocked=s.entities.filter(p=>!ELEMENTS[p.type].creature&&distance({x,z},p)<r+objectRadius(p));
+        const score=blocked.reduce((n,p)=>n+(p.type==='tree'?4:1),0)*100+Math.hypot(x-e.x,z-e.z);
+        if(!best||score<best.score)best={x,z,blocked,score};if(best.score<.01)break;
+      }
+      if(best){const removed=new Set(best.blocked.map(p=>p.id));s.entities=s.entities.filter(p=>!removed.has(p.id));e.x=best.x;e.z=best.z;}placed.push(e);
+    }
+  }
   function initialSoil(s){return s.heights.map((h,i)=>{const p=vertexPoint(i);return clamp(s.moisture+(h<s.water+.3?.16:0)+(noise(p.x,p.z,hash(s.seed)+91)-.5)*.12-(h-1)*.04,.03,.99);});}
   function generate(seed='240816',biome='woodland',mode='journey',careMode='self'){
     if(!Object.hasOwn(BIOMES,biome))biome='woodland';seed=String(seed).slice(0,32)||'240816';const random=rng(seed+biome),bio=BIOMES[biome],landform=profile(seed,biome);
     const water=bio.pond||landform.style==='Rocky oasis'?.52:-.6;
     const s={version:2,seed,biome,day:0,clock:9,moisture:bio.moisture,sun:bio.sun,health:.92,speed:1,paused:false,mode:mode==='sandbox'?'sandbox':'journey',seeds:48,xp:0,mission:0,discoveries:[],seen:[],stats:{planted:0,care:0,sculpted:0,lifeTypes:[],harvested:0,balance:0,bestBalance:0},weather:'auto',lighting:'day',growthRate:12,graphics:'auto',wildGrowth:true,hydroRemainder:0,spreadClock:0,spreadSerial:0,terrainRevision:0,entities:[],heights:[],quests:{plant:false,mist:false,life:false},nextId:1,pondX:1.25+(random()-.5)*1.5,pondZ:-.4+(random()-.5)*1.7,water,baseWater:water,brush:.85,placed:0,landform};
-    s.careMode=careMode==='pet'?'pet':'self';s.careState=newCare();s.careUpdatedAt=0;s.glassVisible=true;
+    s.careMode=careMode==='pet'?'pet':'self';s.careState=newCare();s.careUpdatedAt=0;s.glassVisible=true;s.motion='auto';s.maturePreview=true;
     for(let i=0;i<=GRID_RINGS*GRID_SEGMENTS;i++){const p=vertexPoint(i);s.heights.push(terrainHeight(p.x,p.z,s));}s.soil=initialSoil(s);
     const add=(type,x,z,scale=1)=>s.entities.push({id:s.nextId++,type,x,z,rotation:random()*Math.PI*2,scale:scale*(.75+random()*.45),growth:.70+random()*.30,health:.85+random()*.15,variant:Math.floor(random()*3),phase:random()*Math.PI*2,origin:'wild',paid:0,harvest:random()*.25});
     for(let i=0;i<38;i++){const a=random()*Math.PI*2,r=Math.sqrt(random())*4.5,x=Math.cos(a)*r,z=Math.sin(a)*r;if(heightAt(x,z,s)<s.water+.025)continue;let type=bio.species[Math.floor(random()*bio.species.length)];if(type==='tree'&&s.entities.filter(e=>e.type==='tree').length>3)type='fern';if(type==='tree'&&z<-.6)type='clover';add(type,x,z,ELEMENTS[type].scale);}
     for(let i=0;i<10;i++){const a=random()*Math.PI*2,r=1.8+random()*2.8,x=Math.cos(a)*r,z=Math.sin(a)*r;if(heightAt(x,z,s)>s.water-.05)add('rock',x,z,.55+random()*.8);}
-    add('log',-1.2,-1.8,.9);if(biome!=='desert'){add('butterfly',-1,1);add('snail',-.8,-2);add('firefly',2,1);add('bee',1.4,1.6);add('frog',-2,1.8);}else{add('ladybug',-1,1);add('crystal',1.7,.9,.7);}let bunnyX=-2.8,bunnyZ=-1.8;for(let tries=0;tries<20&&heightAt(bunnyX,bunnyZ,s)<s.water+.05;tries++){const a=random()*Math.PI*2;bunnyX=Math.cos(a)*3.8;bunnyZ=Math.sin(a)*3.8;}add('bunny',bunnyX,bunnyZ);s.seen=[...new Set(s.entities.map(e=>e.type))];return s;
+    add('log',-1.2,-1.8,.9);if(biome!=='desert'){add('butterfly',-1,1);add('snail',-.8,-2);add('firefly',2,1);add('bee',1.4,1.6);add('frog',-2,1.8);}else{add('ladybug',-1,1);add('crystal',1.7,.9,.7);}let bunnyX=-2.8,bunnyZ=-1.8;for(let tries=0;tries<20&&heightAt(bunnyX,bunnyZ,s)<s.water+.05;tries++){const a=random()*Math.PI*2;bunnyX=Math.cos(a)*3.8;bunnyZ=Math.sin(a)*3.8;}add('bunny',bunnyX,bunnyZ);seedCreatureHomes(s);s.seen=[...new Set(s.entities.map(e=>e.type))];return s;
   }
   function season(s){if(s.biome==='tropical')return s.day%12<7?{name:'Monsoon',growth:1.1,rain:.16,evap:.8}:{name:'Dry season',growth:1,rain:-.12,evap:1.2};if(s.biome==='desert')return s.day%14<3?{name:'Bloom season',growth:1.15,rain:.05,evap:1}:{name:'Dry season',growth:.85,rain:-.18,evap:1.3};return[{name:'Spring',growth:1.15,rain:.08,evap:.9},{name:'Summer',growth:1.05,rain:-.08,evap:1.2},{name:'Autumn',growth:.95,rain:.12,evap:.85},{name:'Winter',growth:.7,rain:.04,evap:.65}][Math.floor(s.day/6)%4];}
   function weatherAt(s){
@@ -120,21 +158,22 @@
   }
   function localConditions(x,z,s){
     let shade=0,nutrients=0,pollination=0,wood=0,retention=0;const point={x,z};
-    for(const e of s.entities){const d=distance(point,e);if(e.type==='tree'&&d<1.6)shade=Math.max(shade,(1-d/1.6)*.30*Math.min(e.growth,1));if(e.type==='mushroom'&&d<1.4)nutrients+=.10*(1-d/1.4);if(e.type==='log'&&d<1.4)wood=Math.max(wood,(1-d/1.4));if(e.type==='moss'&&d<1)retention+=.035*(1-d);if((e.type==='butterfly'||e.type==='bee')&&d<2.4)pollination=1;}
+    for(const e of s.entities){const d=distance(point,e),canopy=1.6*(1-(1-(e.pruning??1))*.75);if(e.type==='tree'&&d<canopy)shade=Math.max(shade,(1-d/canopy)*.30*Math.min(e.growth,1));if(e.type==='mushroom'&&d<1.4)nutrients+=.10*(1-d/1.4);if(e.type==='log'&&d<1.4)wood=Math.max(wood,(1-d/1.4));if(e.type==='moss'&&d<1)retention+=.035*(1-d);if((e.type==='butterfly'||e.type==='bee')&&d<2.4)pollination=1;}
     const weather=weatherAt(s),h=heightAt(x,z,s),moisture=clamp((s.soil?sampleGrid(s.soil,x,z):s.moisture)+retention+shade*.09),light=clamp(s.sun*weather.light-shade,.04,1);
     return{moisture,light,shade,nutrients:clamp(nutrients+wood*.12,0,.28),wood,pollination,shore:h>=s.water+.015&&h<s.water+.30,submerged:h<s.water+.012};
   }
   function suitability(e,s,conditions){const p=ELEMENTS[e.type];if(!p||p.category!=='plants')return 1;const c=conditions||localConditions(e.x,e.z,s);if(c.submerged)return .12;let fit=1-Math.abs(c.moisture-p.water)*1.25-Math.abs(c.light-p.sun)*.85;if(e.type==='mushroom')fit+=c.wood*.14;return clamp(fit,.05,1);}
-  function placement(s,type,x,z,excludeId=null){
+  function placement(s,type,x,z,excludeId=null,options={}){
     const def=ELEMENTS[type];if(!def||def.tool||!Number.isFinite(x)||!Number.isFinite(z)||Math.hypot(x,z)>RADIUS-.14)return{ok:false,reason:'Choose a spot inside the glass.'};
     if(excludeId===null&&s.entities.length>=MAX_ENTITIES)return{ok:false,reason:'This world is full. Remove an element to make room.'};
     const conditions=localConditions(x,z,s);if(conditions.submerged&&!['bee','butterfly','firefly','rock','crystal','log'].includes(type))return{ok:false,reason:'Choose dry land or the edge of the pond.',conditions};
     if(!def.creature&&s.entities.some(e=>e.id!==excludeId&&!ELEMENTS[e.type].creature&&Math.hypot(x-e.x,z-e.z)<(type==='tree'?.33:.19)))return{ok:false,reason:'A little more space between roots would help.',conditions};
+    if(!def.creature){const existing=s.entities.find(e=>e.id===excludeId),candidate={type,scale:existing?.scale||(def.scale||1)*clamp(options.size||1,.6,1.5)};if(s.entities.some(e=>ELEMENTS[e.type].creature&&!['bee','butterfly','firefly'].includes(e.type)&&distance({x,z},animalPosition(e,s))<objectRadius(candidate)+animalRadius(e)+.04))return{ok:false,reason:'Leave this animal room beside the mature plant or object.',conditions};}
     const cost=excludeId!==null||s.mode==='sandbox'?0:COSTS[type]||0;if(s.seeds<cost)return{ok:false,reason:'Harvest mature plants for more seeds, or switch to Free build in the Field Guide.',conditions,cost};
     return{ok:true,conditions,cost,fit:suitability({type,x,z},s,conditions)};
   }
   function place(s,type,x,z,options={}){
-    const check=placement(s,type,x,z);if(!check.ok)return check;
+    const check=placement(s,type,x,z,null,options);if(!check.ok)return check;
     const random=rng(s.seed+s.nextId+'placed'),def=ELEMENTS[type],e={id:s.nextId++,type,x,z,rotation:Number.isFinite(options.rotation)?options.rotation:random()*Math.PI*2,scale:(def.scale||1)*clamp(options.size||1,.6,1.5),growth:def.category==='plants'?.40:1,health:.94,variant:Math.floor(random()*3),phase:random()*Math.PI*2,origin:'player',paid:check.cost,harvest:0};
     s.seeds-=check.cost;s.entities.push(e);s.placed++;if(def.category==='plants'){s.stats.planted++;s.quests.plant=true;}if(def.creature){if(!s.stats.lifeTypes.includes(type))s.stats.lifeTypes.push(type);s.quests.life=true;}if(!s.seen.includes(type))s.seen.push(type);return{ok:true,entity:e,events:updateProgress(s)};
   }
@@ -187,7 +226,7 @@
   function hydrology(s,days,weather){
     const old=s.soil,next=old.slice(),phase=season(s),erosion=new Float64Array(s.heights.length),canopies=s.entities.filter(e=>e.type==='tree'),moss=s.entities.filter(e=>e.type==='moss');let altered=false;
     for(let i=0;i<old.length;i++){
-      const h=s.heights[i],near=neighbors(i),point=vertexPoint(i);let mean=0,runoff=0,lowest=i,retention=0;for(const tree of canopies){const d=distance(point,tree);if(d<1.6)retention=Math.max(retention,(1-d/1.6)*.35*Math.min(tree.growth,1));}for(const mat of moss){const d=distance(point,mat);if(d<.85)retention=Math.max(retention,(1-d/.85)*.18);}
+      const h=s.heights[i],near=neighbors(i),point=vertexPoint(i);let mean=0,runoff=0,lowest=i,retention=0;for(const tree of canopies){const d=distance(point,tree),canopy=1.6*(1-(1-(tree.pruning??1))*.75);if(d<canopy)retention=Math.max(retention,(1-d/canopy)*.35*Math.min(tree.growth,1));}for(const mat of moss){const d=distance(point,mat);if(d<.85)retention=Math.max(retention,(1-d/.85)*.18);}
       for(const j of near){mean+=old[j]/near.length;runoff+=Math.max(0,s.heights[j]-h)*old[j]*.018;if(s.heights[j]<s.heights[lowest])lowest=j;}
       const evaporate=(.035+s.sun*.10)*weather.light*phase.evap*(.7+h*.16)*(1-retention),rain=weather.rain*.36,shore=clamp((s.water+.32-h)/.32)*.42;
       next[i]=clamp(old[i]+days*((mean-old[i])*.42+runoff+rain+shore-evaporate),.03,.99);
@@ -201,7 +240,7 @@
   function spread(s){
     const ticket=s.spreadSerial++,r=rng(s.seed+'spread'+ticket),parents=s.entities.filter(e=>['moss','clover','flower','succulent','grass'].includes(e.type)&&e.growth>.85&&e.health>.72);
     if(!s.wildGrowth||!parents.length||s.entities.length>=MAX_ENTITIES||s.entities.filter(e=>e.origin==='spread').length>=30)return null;
-    for(let k=0;k<5;k++){const parent=parents[Math.floor(r()*parents.length)],a=r()*Math.PI*2,d=.5+r()*.65,x=parent.x+Math.cos(a)*d,z=parent.z+Math.sin(a)*d;if(Math.hypot(x,z)>RADIUS-.25||heightAt(x,z,s)<s.water+.03||s.entities.some(e=>Math.hypot(e.x-x,e.z-z)<.38))continue;const candidate={type:parent.type,x,z};if(suitability(candidate,s)<.7)continue;const e={...candidate,id:s.nextId++,rotation:r()*Math.PI*2,scale:parent.scale*(.82+r()*.20),growth:.23,health:.9,variant:parent.variant,phase:r()*Math.PI*2,origin:'spread',paid:0,harvest:0};s.entities.push(e);return e;}
+    for(let k=0;k<5;k++){const parent=parents[Math.floor(r()*parents.length)],a=r()*Math.PI*2,d=.5+r()*.65,x=parent.x+Math.cos(a)*d,z=parent.z+Math.sin(a)*d;if(Math.hypot(x,z)>RADIUS-.25||heightAt(x,z,s)<s.water+.03||s.entities.some(e=>distance(ELEMENTS[e.type].creature?animalPosition(e,s):e,{x,z})<(ELEMENTS[e.type].creature?animalRadius(e)+objectRadius({...parent,scale:parent.scale*1.02}):.38)))continue;const candidate={type:parent.type,x,z};if(suitability(candidate,s)<.7)continue;const e={...candidate,id:s.nextId++,rotation:r()*Math.PI*2,scale:parent.scale*(.82+r()*.20),growth:.23,health:.9,variant:parent.variant,phase:r()*Math.PI*2,origin:'spread',paid:0,harvest:0};s.entities.push(e);return e;}
     return null;
   }
   function advance(s,dt){
@@ -228,10 +267,10 @@
     const stats=o.stats||{};o.stats={planted:finite(stats.planted,o.quests.plant?1:0),care:finite(stats.care,o.quests.mist?1:0),sculpted:finite(stats.sculpted,0),lifeTypes:Array.isArray(stats.lifeTypes)?[...new Set(stats.lifeTypes.filter(k=>Object.hasOwn(ELEMENTS,k)&&ELEMENTS[k].creature))]:[],harvested:finite(stats.harvested,0),balance:finite(stats.balance,0),bestBalance:finite(stats.bestBalance,0)};
     o.careMode=o.careMode==='pet'?'pet':'self';const pet=o.careState||newCare();o.careState={food:finite(pet.food,.95,0,1),water:finite(pet.water,.95,0,1),clean:finite(pet.clean,.95,0,1),vitality:finite(pet.vitality,1,0,1),alive:pet.alive!==false&&pet.vitality!==0,ageHours:finite(pet.ageHours,0,0,87600)};o.careUpdatedAt=finite(o.careUpdatedAt,0,0,Number.MAX_SAFE_INTEGER);
     if(o.soil!==undefined&&(!Array.isArray(o.soil)||o.soil.length!==o.heights.length||o.soil.some(x=>!Number.isFinite(x)||x<0||x>1)))throw Error('This world has invalid soil moisture data.');if(!o.soil)o.soil=initialSoil(o);
-    o.landform=profile(o.seed,o.biome);o.weather=['auto','clear','rain'].includes(o.weather)?o.weather:'auto';o.wildGrowth=o.wildGrowth!==false;o.glassVisible=o.glassVisible!==false;o.baseWater=finite(o.baseWater,o.water,-.6,.9);o.hydroRemainder=finite(o.hydroRemainder,0,0,5);o.spreadClock=finite(o.spreadClock,0,0,.65);o.spreadSerial=Math.floor(finite(o.spreadSerial,0));o.terrainRevision=Math.floor(finite(o.terrainRevision,0));
+    o.landform=profile(o.seed,o.biome);o.weather=['auto','clear','rain'].includes(o.weather)?o.weather:'auto';o.wildGrowth=o.wildGrowth!==false;o.glassVisible=o.glassVisible!==false;o.motion=['auto','full','reduced'].includes(o.motion)?o.motion:'auto';o.maturePreview=o.maturePreview!==false;o.baseWater=finite(o.baseWater,o.water,-.6,.9);o.hydroRemainder=finite(o.hydroRemainder,0,0,5);o.spreadClock=finite(o.spreadClock,0,0,.65);o.spreadSerial=Math.floor(finite(o.spreadSerial,0));o.terrainRevision=Math.floor(finite(o.terrainRevision,0));
     for(const e of o.entities)if(e.type==='tree'&&((e.pruning!==undefined&&(!Number.isFinite(e.pruning)||e.pruning<.52||e.pruning>1))||(e.regrowing!==undefined&&(typeof e.regrowing!=='boolean'||e.regrowing&&e.pruning===undefined))))throw Error('This world has invalid bonsai trimming data.');
     for(const e of o.entities){e.origin=['wild','player','spread'].includes(e.origin)?e.origin:'wild';e.paid=finite(e.paid,0,0,20);e.harvest=finite(e.harvest,0,0,1);}return o;
   }
-  const api={clamp,hash,rng,noise,BIOMES,ELEMENTS,RADIUS,VESSEL_PROFILE,vesselRadius,GRID_RINGS,GRID_SEGMENTS,MAX_ENTITIES,PLANTS,CREATURES,visualHour,COSTS,DISCOVERIES,MISSIONS,RANKS,generate,profile,heightAt,vertexPoint,localConditions,weatherAt,season,habitatTarget,sculpt,suitability,placement,place,relocate,remove,trimBonsai,regrowBonsai,care,newCare,advanceCare,careStatus,setCareMode,recordSculpt,isReady,harvest,rank,missionProgress,updateProgress,advance,validate};
+  const api={clamp,hash,rng,noise,BIOMES,ELEMENTS,RADIUS,VESSEL_PROFILE,vesselRadius,GRID_RINGS,GRID_SEGMENTS,MAX_ENTITIES,PLANTS,CREATURES,visualHour,COSTS,DISCOVERIES,MISSIONS,RANKS,generate,profile,heightAt,surfaceAt,renderScale,animalRadius,animalHeight,terrainPenalty,objectRadius,setAnimalPositions,animalPosition,vertexPoint,localConditions,weatherAt,season,habitatTarget,sculpt,suitability,placement,place,relocate,remove,trimBonsai,regrowBonsai,care,newCare,advanceCare,careStatus,setCareMode,recordSculpt,isReady,harvest,rank,missionProgress,updateProgress,advance,validate};
   if(typeof module!=='undefined')module.exports=api;else root.TerrariumCore=api;
 })(typeof window!=='undefined'?window:globalThis);

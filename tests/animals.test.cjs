@@ -5,7 +5,7 @@ function vector(x=0,y=0,z=0){return{x,y,z,set(x,y,z){Object.assign(this,{x,y,z})
 function part(){return{position:vector(),rotation:vector(),scaling:vector(1,1,1)};}
 function signedDistance(x,y,z,o){const ds=[Math.max(o.minX-x,x-o.maxX),Math.max(o.minY-y,y-o.maxY),Math.max(o.minZ-z,z-o.maxZ)];return ds.some(d=>d>0)?Math.hypot(...ds.map(d=>Math.max(d,0))):Math.max(...ds);}
 function scenario(type,animalObstacle=false){
- const s=C.generate('all-animal-clearance');s.entities=[];s.water=.4;s.speed=1;s.paused=false;const e={id:1,type,x:-1.5,z:0,scale:.9,phase:.7,rotation:0};
+ const s=C.generate('all-animal-clearance');s.entities=[];s.heights.fill(1);s.water=.4;s.speed=1;s.paused=false;const e={id:1,type,x:-1.5,z:0,scale:.9,phase:.7,rotation:0};
  const box=animalObstacle?{minX:-.2574,maxX:.2574,minZ:-.2574,maxZ:.2574,minY:1,maxY:1+.82*.495}:{minX:-.25,maxX:.25,minZ:-.65,maxZ:.65,minY:1,maxY:2.3};
  const barrier=animalObstacle?{id:100,type:'bunny',x:0,z:0,scale:.9,growth:1}:{id:100,type:'fern',x:0,z:0,scale:1,growth:1};s.entities.push(e,barrier);
  const foodType=type==='bunny'?'clover':type==='frog'?'moss':type==='snail'?'log':'flower';s.entities.push({id:101,type:foodType,x:1.7,z:0,scale:.3,growth:1});

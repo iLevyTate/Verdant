@@ -3,3 +3,4 @@ _site/
 .standalone/
 *.zip
 .DS_Store
+test-artifacts/

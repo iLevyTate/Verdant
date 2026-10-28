@@ -12,6 +12,15 @@ A mobile-first, procedural 3D terrarium game. Build a little world, nurture plan
 
 ## New in this version
 
+- **An update you can actually apply:** Care & display and Get app have **Check for updates** and a ready **Update app** action. A persistent Update button remains in the header after **Later**. It reopens the confirmation; **Save & update now** checkpoints the world, applies the downloaded release, and reloads only after saving succeeds. Offline/check/download errors have retry messages. An interrupted activation becomes retryable instead of leaving disabled controls forever.
+- **Visible save protection on phones:** saving failures and other-tab conflicts show a persistent banner with Export, Retry, and a deliberate way to load the saved copy. The warning remains until saving succeeds. Failed autosaves retry at a bounded interval.
+- **Dated restore points:** Care & display → **Backups & restore** offers export, import, manual restore points, dated automatic points, and restoration. Up to five points are retained within a storage budget, alongside the existing previous-save and update copies. Restoring preserves the displaced world. New world/import also checkpoints the current arrangement first.
+- **Safer starts and edits:** new worlds reserve dry, gentle ground and clear air for wildlife. Planting, moving objects, and self-seeding leave space around animals; live animal positions are transient and do not rewrite saved anchors. Older animals can escape worsening habitat without regenerating the world.
+- **Feet follow the actual soil:** triangle-based height sampling matches the rendered terrain, including hills made with the sculpting tools. Terrain edits/erosion reach the mesh before wildlife updates. Cached triangle coefficients reduce repeated sampling work.
+- **Better close-ups:** the camera fits the entire selected model to the available phone viewport and follows a selected animal. Inspection details close for an unobstructed view. Reset returns to the fitted terrarium view.
+- **Connected bonsai care:** trimming reduces the canopy's shade and protection against local drying. Regrowth gradually restores those effects.
+- **Consistent rain and calmer viewing:** rain speed uses elapsed time. **Motion → Calm view** stops cosmetic movement while growth and care continue; Auto respects the device's reduced-motion preference. Mature-size outlines help plan plantings and can be switched off.
+- **Measurable quality:** Care shows live frame rate. `npm run bench:scene` compares 50/120/220-element CPU workloads; see [BENCHMARK_BASELINE.md](BENCHMARK_BASELINE.md). This is a headless diagnostic, not a claim about phone GPU performance. [MOBILE_QA.md](MOBILE_QA.md) records the real-device acceptance procedure.
 - **Plants stay inside the glass:** the full canopy is checked against the vessel's curved sides and narrow rim, including growth, wind, rotation, high soil, and oversized trees in older worlds. Existing saved positions and sizes are retained; their rendered growth is fitted safely. New plantings reserve room for a mature canopy.
 - **Glass-free view:** choose **Care & display → Glass → Glass-free view** (also in Field Guide → Your world). This hides the vessel, every rim, and reflections while keeping the garden intact. The choice saves with the world and supports Undo.
 - **Trim a bonsai:** inspect a juniper, then choose **Trim bonsai**. Three bounded trims shorten upper branches and compact foliage while retaining the roots, lower trunk, health, maturity, and harvest progress. The shape stays held; **Let regrow** gradually restores new shoots with simulation time. Trimming supports Undo and survives save/export/import and app updates.
@@ -109,9 +118,10 @@ npm run release:cache
 npm run check
 npm test
 npm run test:scene
+npm run bench:scene
 ```
 
-The scene test uses Babylon's official NullEngine and `@napi-rs/canvas` to validate all biome scenes, model geometry, placement previews, harvest markers, selections, and fitted cameras on four phone layouts without a GPU. Additional tests cover care catch-up, neglect/revival, save migration, manifest icons, complete offline assets, subfolder URLs, and cache isolation. Live WebGL appearance must still be checked on a device with WebGL support.
+The scene test uses Babylon's official NullEngine and `@napi-rs/canvas` to validate all biome scenes, model geometry, initial animal habitats, rendered-triangle footing, frame-independent rain, mature previews, and full-object close-ups on four phone layouts without a GPU. The production HTML and `game.js`/`pwa.js` also receive DOM interaction checks using LinkeDOM with a substituted renderer: touch placement, trimming/Undo, settings, saving errors, backups, deferred updates, and save-before-update consent. These checks do not measure CSS layout, GPU output, heat, battery, or native install dialogs; physical-device acceptance remains necessary.
 
 `node scripts/prepare-pages.mjs` prepares the static `_site/` directory. In an editing checkout that has `dist/`, the server and packaging helpers use that folder. In the standalone repository, they use the root game files.
 
