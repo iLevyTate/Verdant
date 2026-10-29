@@ -4,48 +4,21 @@
 
 [Play Verdant](https://ilevytate.github.io/Verdant/) · [Download game ZIP](https://github.com/iLevyTate/Verdant/archive/refs/heads/main.zip) · [Social preview image](assets/verdant-social.jpg)
 
-![Verdant — A little world of your own](assets/verdant-social.jpg)
-
-A mobile-first, procedural 3D terrarium game. Build a little world, nurture plants, welcome tiny wildlife, and follow the Garden Journey.
+A mobile-first, procedural 3D terrarium game. Build a planted landscape with soil, stone, driftwood, and water, then follow the Garden Journey. Wildlife is temporarily paused while the game focuses on botanical and terrain realism.
 
 **Plain HTML, CSS, and JavaScript. No Jekyll, Ruby, framework, compilation, or backend is required to host the game.** The Babylon.js engine and environment lighting are bundled locally, and the interface uses device fonts with no external font requests.
 
-## New in this version
+## Botanical focus release
 
-- **An update you can actually apply:** Care & display and Get app have **Check for updates** and a ready **Update app** action. A persistent Update button remains in the header after **Later**. It reopens the confirmation; **Save & update now** checkpoints the world, applies the downloaded release, and reloads only after saving succeeds. Offline/check/download errors have retry messages. An interrupted activation becomes retryable instead of leaving disabled controls forever.
-- **Visible save protection on phones:** saving failures and other-tab conflicts show a persistent banner with Export, Retry, and a deliberate way to load the saved copy. The warning remains until saving succeeds. Failed autosaves retry at a bounded interval.
-- **Dated restore points:** Care & display → **Backups & restore** offers export, import, manual restore points, dated automatic points, and restoration. Up to five points are retained within a storage budget, alongside the existing previous-save and update copies. Restoring preserves the displaced world. New world/import also checkpoints the current arrangement first.
-- **Safer starts and edits:** new worlds reserve dry, gentle ground and clear air for wildlife. Planting, moving objects, and self-seeding leave space around animals; live animal positions are transient and do not rewrite saved anchors. Older animals can escape worsening habitat without regenerating the world.
-- **Feet follow the actual soil:** triangle-based height sampling matches the rendered terrain, including hills made with the sculpting tools. Terrain edits/erosion reach the mesh before wildlife updates. Cached triangle coefficients reduce repeated sampling work.
-- **Better close-ups:** the camera fits the entire selected model to the available phone viewport and follows a selected animal. Inspection details close for an unobstructed view. Reset returns to the fitted terrarium view.
-- **Connected bonsai care:** trimming reduces the canopy's shade and protection against local drying. Regrowth gradually restores those effects.
-- **Consistent rain and calmer viewing:** rain speed uses elapsed time. **Motion → Calm view** stops cosmetic movement while growth and care continue; Auto respects the device's reduced-motion preference. Mature-size outlines help plan plantings and can be switched off.
-- **Measurable quality:** Care shows live frame rate. `npm run bench:scene` compares 50/120/220-element CPU workloads; see [BENCHMARK_BASELINE.md](BENCHMARK_BASELINE.md). This is a headless diagnostic, not a claim about phone GPU performance. [MOBILE_QA.md](MOBILE_QA.md) records the real-device acceptance procedure.
-- **Plants stay inside the glass:** the full canopy is checked against the vessel's curved sides and narrow rim, including growth, wind, rotation, high soil, and oversized trees in older worlds. Existing saved positions and sizes are retained; their rendered growth is fitted safely. New plantings reserve room for a mature canopy.
-- **Glass-free view:** choose **Care & display → Glass → Glass-free view** (also in Field Guide → Your world). This hides the vessel, every rim, and reflections while keeping the garden intact. The choice saves with the world and supports Undo.
-- **Trim a bonsai:** inspect a juniper, then choose **Trim bonsai**. Three bounded trims shorten upper branches and compact foliage while retaining the roots, lower trunk, health, maturity, and harvest progress. The shape stays held; **Let regrow** gradually restores new shoots with simulation time. Trimming supports Undo and survives save/export/import and app updates.
-- **Existing worlds are kept:** the world key and data schema stay the same. A previous valid save and a separate pre-update checkpoint provide recovery copies. Unreadable or unsupported saves open recovery controls instead of being replaced by a new world. Stale tabs are stopped from silently overwriting newer saved data.
-- **Full element audit:** every placeable element and all three variants are checked; see [QUALITY_AUDIT.md](QUALITY_AUDIT.md). Terrain smoothing now blends local neighbors, interrupted brush strokes commit consistently, and keyboard sunlight changes support Undo. Auto graphics adapts rendering resolution under sustained load and gradually restores it.
+- **Animals are temporarily removed from play.** Wildlife is not rendered, generated, selectable, counted, or used for placement/ecology. Every animal record in an existing save remains intact, including identity, position, variant, size, health, and paid seeds. No save key or terrain data is reset.
+- **All nine plant models have been rebuilt:** arching fern fronds, fine moss shoots on an irregular cushion, clover leaflets, curved daisy petals and stamens, detailed mushroom caps/gills, branched juniper sprays, ribbed/spined cacti, solid waxy succulent leaves, and folded grass blades. Bark, foliage, and flower parts use separate physically based surfaces with UVs and fine surface detail. Groundcover conforms to local slopes.
+- **Scanned soil, bark, stone, and desert sand:** twelve bundled 1K maps provide color, normal detail, and ambient-occlusion/roughness/metal channels. Mineral grit and leaf litter add small real geometry. All maps are included in offline/PWA downloads. See [asset credits](assets/ATTRIBUTION.md).
+- **More natural light and water:** restrained color grading, leaf translucency, directional contact shadows, depth-tinted clear water, subtle ripples, and a quieter photographic view. Decorative pollen, bloom, and always-visible seed rings are disabled. The harvest control and inspection still expose seed readiness.
+- **Detail choices:** Cinematic uses the complete botanical geometry; Auto balances phone/desktop detail; Performance uses fewer shoots and surface segments. Switching refreshes the models without changing saved entities. Glass-free view, close-ups, calm motion, rapid growth, and sculpting remain available.
+- **A plant-only journey:** groundcover diversity replaces the animal objective. Meadow and damp-moss discoveries replace animal-dependent goals. Existing mission indices, rewards, and earned discoveries are retained.
+- **Reliable saves and updates:** persistent save-failure alerts, export/import, dated restore points, safe update checkpoints, manual update checks, and the persistent ready Update button remain active. Choose **Save & update now** when prompted; **Later** keeps the update accessible.
 
-- **Avoidance for every animal:** rabbits, frogs, snails, and ladybugs check their entire ground route. Bees, butterflies, and fireflies check 3D flight corridors and steer around vegetation, decorations, and one another. Each species has its own movement speed, pauses, and turns. Flight targets sit above blooms rather than inside them.
-- **Regular garden frogs:** speckled olive/brown bodies, flatter feet, ground-level hops, and damp-shore preferences. Existing saved frogs convert automatically without changing their IDs. Tree climbing has been removed.
-
-- **Smaller, livelier Holland Lops:** 45% smaller in new and existing worlds, with short hop bursts, anticipation, soft landings, grazing beside plants, sniffing pauses, breathing, and springy ear motion. Paths account for rendered vegetation bounds, decorations, other ground animals, pond edges, and steep terrain. Moving an animal resets its old route.
-- **Updates ask first:** checks run at launch, every five minutes while open, when returning to the app, and after reconnecting. A ready update offers **Save & update now** or **Later**. Updates preserve the current release until accepted; failed saving blocks activation and asks you to export your world. If another tab updates, this tab asks before reloading.
-
-- **Install as a PWA** from Care & display or Field Guide → Your world. Supported browsers offer native installation; iPhone/iPad users get Add to Home Screen instructions. PNG launcher icons, a maskable icon, and an Apple touch icon are included.
-- **Offline play** after the first complete online visit. The service worker caches the complete game, engine, and lighting locally, with scope-relative paths for GitHub Pages project URLs. Waiting updates have an explicit Update app button and save before reloading.
-- **Self-sustaining** is the default care mode: plants and wildlife are protected from neglect. Build, experiment, and leave whenever you like.
-- **Pet Care** tracks food, water, cleanliness, vitality, and time together. Feed, water, and tidy about twice a day. Needs use real time, including while closed or the ecosystem is paused; growth and 20× simulation speed do not accelerate them. Extended neglect can end the world's life. Revive keeps the landscape and journey.
-- Choose care mode during world creation or change it in Care & display / Field Guide → Your world. Care mode is independent of Garden Journey / Free build, so both care choices work with either building mode. Switching preserves the layout and progression and starts with fresh needs.
-
-- Bumblebees visit flowers and help pollination.
-- Garden frogs take short, crouched hops and rest beside damp moss and pond edges; they stay on the ground.
-- Micro Holland Lop bunnies have soft bodies, floppy ears, grazing motions, and small hops.
-- Plant growth starts at **Rapid 12×**, independently of simulation speed. Natural 1×, Quick 6×, and Burst 24× are available.
-- **Daylight locked** is the default. Switch between locked daylight, the natural cycle, and locked moonlight while the clock, weather, and ecosystem keep progressing.
-- A phone-sized tool tray, larger touch controls, collapsible care settings, and close-up camera views keep the living world visible.
-- Physically based creature and glass materials, bundled studio illumination, smoother plant models, reflective animated water, antialiasing, and subtle bloom. Cinematic adds stronger antialiasing and ambient occlusion where supported; Auto is the default for phones.
+The engine remains Babylon.js, with revised geometry, materials, and lighting. Automated checks cover geometry, UVs, material configuration, offline assets, phone camera framing, and save compatibility. The cloud browser cannot create WebGL contexts; final real-device GPU appearance and performance still require device acceptance.
 
 ## Host on GitHub Pages, without Jekyll
 
@@ -58,8 +31,8 @@ This repository is prepared for **Deploy from a branch → main → / (root)**. 
 ### Repository logo and social preview
 
 - The transparent logo is at [assets/verdant-logo.png](assets/verdant-logo.png).
-- The upload-ready GitHub social preview is [assets/verdant-social.jpg](assets/verdant-social.jpg), exactly **1280 × 640**, under 1 MB.
-- To set the repository card, open **Settings → General → Social preview → Edit → Upload an image**, choose that JPG, and save. Website Open Graph and Twitter metadata already use this card for shared game links.
+- The earlier illustrated GitHub social preview is [assets/verdant-social.jpg](assets/verdant-social.jpg), exactly **1280 × 640**, under 1 MB.
+- To set the repository card, open **Settings → General → Social preview → Edit → Upload an image**, choose that JPG, and save. That earlier key art includes animals and does not represent the current botanical-only build.
 - Launcher icons and the game header use the new emblem. See [BRANDING.md](BRANDING.md) for source artwork and generation notes.
 
 ### Other static hosts
@@ -78,19 +51,19 @@ Open `http://localhost:8080`. Installing npm dependencies is not required simply
 
 ## Install and play offline
 
-The primary website is **https://ilevytate.github.io/Verdant/** and opens directly into the app. Choose **Get app** in the top bar for installation instructions or **Download game files (.zip)**. The ZIP always comes from the current `main` branch and contains the complete app and its assets. Installation is also available in **Care & display**. Chrome and Edge can show their native prompt; the fallback panel explains iPhone/iPad, Android, and Mac installation. Wait for **Ready to play offline** before disconnecting. The first complete cache is roughly 9 MB. Installed and browser play use local device storage; use world export/import to transfer saves between hosts or devices.
+The primary website is **https://ilevytate.github.io/Verdant/** and opens directly into the app. Choose **Get app** in the top bar for installation instructions or **Download game files (.zip)**. The ZIP always comes from the current `main` branch and contains the complete app and its assets. Installation is also available in **Care & display**. Chrome and Edge can show their native prompt; the fallback panel explains iPhone/iPad, Android, and Mac installation. Wait for **Ready to play offline** before disconnecting. The first complete cache is roughly 14 MB. Installed and browser play use local device storage; use world export/import to transfer saves between hosts or devices.
 
 The service worker intercepts only the game's own static shell, not API routes, account data, downloads, or other projects on the same origin. Updates keep one complete release together until you choose **Update app**. Before committing runtime changes, run `npm run release:cache`. It fingerprints the complete offline game; `npm run check` rejects a stale fingerprint, so runtime updates cannot accidentally reuse the previous release cache unnoticed.
 
 ## Mobile controls
 
-- Choose Plants, Terrain, or Life, then tap the soil to place an element. Swipe the tray horizontally to see more choices.
+- Choose Plants or Terrain, then tap the soil to place an element. Swipe the tray horizontally to see more choices.
 - Drag to orbit and pinch to zoom. Observe collapses the tray. The handle reopens it.
 - Use the sliders icon for **Care & display**: mist, vent, sunlight, weather, growth speed, lighting lock, glass visibility, and graphics quality.
-- Inspect an element to harvest, move, remove, or open its **Close-up** view. Junipers also offer **Trim bonsai** and **Let regrow**. Reset the camera to return to the complete terrarium.
-- Gold rings mark seeds ready to collect. The tray's harvest button collects every ready plant.
+- Inspect a plant or landscape element to harvest, move, remove, or open its **Close-up** view. Junipers also offer **Trim bonsai** and **Let regrow**. Reset the camera to return to the complete terrarium.
+- A gold ring marks the selected plant when its seeds are ready. The tray's harvest button collects every ready plant.
 - The sun/moon button cycles Daylight locked → Natural cycle → Moonlight locked. This changes the view rather than skipping time.
-- Pause freezes the procedural simulation. Pet Care needs still follow real time. Growth speed and lighting remain independent of the 1×, 5×, and 20× simulation clock.
+- Pause freezes the procedural simulation. Garden care needs still follow real time. Growth speed and lighting remain independent of the 1×, 5×, and 20× simulation clock.
 
 Desktop shortcuts: Space pauses, M mists, I inspects, R rotates, −/+ changes element size, H hides the UI, Escape selects Observe, and Ctrl/Command Z or Ctrl/Command Shift Z undo and redo.
 
@@ -98,9 +71,9 @@ Desktop shortcuts: Space pauses, M mists, I inspects, R rotates, −/+ changes e
 
 Seeded woodland, rainforest, and desert terrain includes hills, valleys, creeks, islands, dunes, and oases. Weather follows the seed, time, and biome-specific seasons. A saved soil-moisture grid responds to rain, evaporation, slopes, shorelines, moss, and canopy shelter. Wet slopes gradually transport soil downhill. Healthy plants can self-seed in suitable, uncrowded soil.
 
-Trees soften local light, organic matter feeds nearby growth, and bees and butterflies help flowers make seeds. The **Living landscape** setting controls self-seeding and erosion. There are nine plant species and seven creature species, eight journey chapters, five habitat discoveries, and seven ranks. Free build removes planting costs while keeping the simulation and progression.
+Trees soften local light, organic matter feeds nearby growth, and varied flowering patches complete the meadow discovery. The **Living landscape** setting controls self-seeding and erosion. There are nine active plant species, eight journey chapters, five plant/terrain discoveries, and seven ranks. The seven archived animal types are retained only for save compatibility and future work. Free build removes planting costs while keeping the simulation and progression.
 
-This is an illustrative game, not a biological or fluid-dynamics model. The tiny animals are imaginative terrarium inhabitants, not real-world husbandry guidance.
+This is an illustrative game, not a biological or fluid-dynamics model.
 
 ## Saves and settings
 
@@ -108,7 +81,7 @@ App updates reuse `verdant-world-v1`; they do not regenerate the landscape or cl
 
 Worlds save automatically in the current browser. New world offers JSON export and validated import for moving between devices or hosting domains. Earlier saved layouts are preserved and gain the rapid-growth and daylight-lock defaults if those settings are missing.
 
-The procedural terrain and growth simulation runs while the page is visible. Pet Care needs catch up from the last saved timestamp when you return, including offline. Self-sustaining worlds remain safe while away. Earlier saves default to Self-sustaining to avoid retroactive neglect. The scene limit is 220 elements, and natural spreading is capped at thirty offspring.
+The procedural terrain and growth simulation runs while the page is visible. Garden care needs catch up from the last saved timestamp when you return, including offline. Self-sustaining worlds remain safe while away. Earlier saves default to Self-sustaining to avoid retroactive neglect. The scene limit is 220 visible elements, and natural spreading is capped at thirty offspring. Up to 220 archived animals can be retained separately without consuming planting or self-seeding capacity.
 
 ## Development and checks
 
@@ -121,7 +94,7 @@ npm run test:scene
 npm run bench:scene
 ```
 
-The scene test uses Babylon's official NullEngine and `@napi-rs/canvas` to validate all biome scenes, model geometry, initial animal habitats, rendered-triangle footing, frame-independent rain, mature previews, and full-object close-ups on four phone layouts without a GPU. The production HTML and `game.js`/`pwa.js` also receive DOM interaction checks using LinkeDOM with a substituted renderer: touch placement, trimming/Undo, settings, saving errors, backups, deferred updates, and save-before-update consent. These checks do not measure CSS layout, GPU output, heat, battery, or native install dialogs; physical-device acceptance remains necessary.
+The scene test uses Babylon's official NullEngine and `@napi-rs/canvas` to validate all biome scenes, botanical geometry/UVs/materials, archived-animal invisibility and preservation, rendered-triangle terrain, frame-independent rain, mature previews, and full-object close-ups on four phone layouts without a GPU. The production HTML and `game.js`/`pwa.js` also receive DOM interaction checks using LinkeDOM with a substituted renderer: touch placement, trimming/Undo, settings, saving errors, backups, deferred updates, and save-before-update consent. These checks do not measure CSS layout, GPU output, heat, battery, or native install dialogs; physical-device acceptance remains necessary.
 
 `node scripts/prepare-pages.mjs` prepares the static `_site/` directory. In an editing checkout that has `dist/`, the server and packaging helpers use that folder. In the standalone repository, they use the root game files.
 
@@ -129,4 +102,4 @@ The scene test uses Babylon's official NullEngine and `@napi-rs/canvas` to valid
 
 - Rendering engine: Babylon.js 8.32.0, Apache License 2.0. See `vendor/BABYLON-LICENSE.md`.
 - Studio environment: Babylon.js Assets contributors, Creative Commons Attribution 4.0. The environment is unchanged apart from its filename. See `assets/ATTRIBUTION.md` and `assets/BABYLON-ASSETS-LICENSE.txt`.
-- Scene, plants, animals, terrain, and audio are generated from this project's source code. Brand artwork was generated with OpenAI image generation. No external model downloads are needed to play.
+- Plant meshes, archived animals, terrain, and audio are generated from this project's source code. Brand artwork was generated with OpenAI image generation. No external model downloads are needed to play. Scanned surface maps from Poly Haven are CC0 and bundled locally.

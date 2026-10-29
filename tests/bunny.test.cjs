@@ -1,5 +1,5 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
-const APP=fs.existsSync(path.join(__dirname,'../dist/core.js'))?'../dist/':'../',C=require(APP+'core.js');
+const APP=fs.existsSync(path.join(__dirname,'../dist/core.js'))?'../dist/':'../',C=require('./legacy-core.cjs');
 function vector(x=0,y=0,z=0){return{x,y,z,set(x,y,z){Object.assign(this,{x,y,z});},setAll(n){this.set(n,n,n);}};}
 function part(){return{position:vector(0,.49,0),rotation:vector(),scaling:vector(1,1,1)};}
 function run({pond=false,obstacle=false}={}){

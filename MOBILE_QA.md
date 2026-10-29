@@ -6,8 +6,8 @@ Automated checks cover logic, real model geometry, offline assets, and productio
 
 1. Export the current world from Care & display before testing. Use a separate browser profile for destructive test scenarios; keep the exported file outside browser storage.
 2. Open the published HTTPS app at phone portrait and landscape sizes. Confirm the initial garden fits, the tray scrolls, and Care/inspector/backup panels remain scrollable with readable controls.
-3. Inspect the bunny, a mature juniper, flowers, a snail, and a flyer. Close-up should frame the complete selected model. Reset must restore the complete terrarium.
-4. Place and move plants/decorations near animals. Placement should reject an occupied mature footprint; new animals should not start inside vegetation or on wet/steep ground. Sculpt a small hill and watch ground contact.
+3. Inspect a mature juniper, moss, flowers, a cactus, a succulent, and driftwood. Close-up should frame the complete selected model. Reset must restore the complete terrarium.
+4. Confirm that no animals or Life controls are visible, including after importing a previous world. Check that archived animal records survive export. Place and move plants/decorations, sculpt a hill, and check groundcover contact, glass clearance, soil detail, bark grain, and shore transparency.
 5. Trim a bonsai three times, Undo/Redo, choose Let regrow, save, reload, and export/import. Verify its ID, position, health, harvest state, and chosen trim survive.
 6. Toggle Glass-free view, mature previews, and Calm view. Reload and confirm the choices persist. Compare automatic reduced motion with the device preference. Growth/care clocks must continue in Calm view.
 7. Create several restore points, edit the garden, then restore an earlier point. Confirm the displaced world is still available and Undo restores the session's prior arrangement. Verify export works from Care and the warning banner.

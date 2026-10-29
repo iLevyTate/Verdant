@@ -1,4 +1,21 @@
-# Dense-scene CPU baseline
+# Dense-scene CPU diagnostics
+
+## Botanical release
+
+The current plant-only fixtures ran with Node v24.22.1 and Babylon.js 8.32.0. These are **NullEngine CPU diagnostics**, not GPU or physical-phone frame rates. The same fifty-step fixtures include ten warm-up steps, full animation, all nine plants, and simulation at its normal 10 Hz cadence. Host load and garbage collection affect short samples.
+
+| Elements / time | Animals / meshes | Animation ms median / p95 | Simulation tick ms median / p95 | NullEngine render ms median / p95 |
+| --- | --- | --- | --- | --- |
+| 50 / 1× | 0 / 176 | 1.94 / 5.49 | 0.43 / 0.54 | 2.17 / 3.44 |
+| 120 / 1× | 0 / 246 | 3.92 / 8.16 | 0.86 / 0.98 | 2.29 / 3.02 |
+| 220 / 1× | 0 / 346 | 7.32 / 14.94 | 1.96 / 3.31 | 3.23 / 6.37 |
+| 220 / 20× | 0 / 346 | 7.92 / 15.43 | 8.53 / 13.66 | 3.28 / 5.27 |
+
+Ground-conforming geometry is reused during growth and refreshed for changes in terrain, pose, or health bands. Harvest rings are allocated only for the selected ready plant. The dense 20× case still requires significant simulation work. Profile physical devices using [MOBILE_QA.md](MOBILE_QA.md) before making frame-rate or battery claims.
+
+## Historical baseline
+
+**This table predates the botanical geometry revision and is not a benchmark of the current release.** The benchmark script now creates plant-only density fixtures. Re-run it for the current meshes; physical device performance still requires profiling.
 
 Recorded for the October 27, 2026 release work, using Node v24.22.1 and Babylon.js 8.32.0 on the development host. Run `npm run bench:scene` to repeat it.
 

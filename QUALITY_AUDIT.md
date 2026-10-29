@@ -1,5 +1,20 @@
 # Verdant quality and save-preservation audit
 
+## Current release — botanical focus (October 28, 2026)
+
+This release temporarily suspends wildlife. Older wildlife-related audit results below describe retained, dormant code, not currently available gameplay. Animal records remain in existing saves; no renderer nodes, picking targets, live collisions, pollination effects, generation, or visible wildlife controls remain active. Archived health/identity/position/size data is frozen, and version 1/2 saves retain their terrain and progression.
+
+The active collection has nine plant species and three landscape decorations, plus terrain tools. All plant models are rebuilt with UV-mapped material groups: curved foliage, stems, needles, petal/stamen detail, moss shoots and cushions, gills, cactus areoles/spines, solid succulent leaves, and folded grass. Groundcover conforms to local slopes. Juniper pruning continues to reshape its own geometry.
+
+PBR surfaces use bundled 1K color/normal/ARM maps from Poly Haven for soil, bark, stone, and desert sand, with runtime-generated leaf/cuticle microdetail and translucency. Fine mineral grit and fallen leaves are separate, non-interactive terrain detail. Water uses bed-depth tinting and a Fresnel reflection term. Bloom and decorative pollen are disabled; harvest markers appear only for the selected plant, preserving a quieter view.
+
+Dense rapid-growth gardens reuse ground-conforming geometry until terrain, pose, or a health band changes; only the selected ready plant allocates a harvest ring. Cinematic, Auto, and Performance have bounded geometric detail levels; switching rebuilds visuals and releases superseded templates without changing saved entities. Plant-only groundcover/meadow/moss objectives keep all journey chapters playable while retaining completed mission indices and discovery IDs.
+
+Evidence: `tests/botanical.test.cjs`, expanded botanical scene/UV/material/bounds checks, all pre-existing save/update and production DOM interaction checks. Dormant animal compatibility remains tested separately through `tests/legacy-core.cjs`. Source meshes were also inspected with an offline shape visualization, which does not reproduce Babylon's final PBR/GPU output. This cloud browser cannot create WebGL contexts, so real GPU appearance and physical-device performance remain unverified acceptance items.
+
+---
+
+
 Reviewed: October 27, 2026. Target: the existing mobile-first app at `https://ilevytate.github.io/Verdant/`.
 
 ## Decision

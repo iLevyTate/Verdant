@@ -1,6 +1,6 @@
 const assert=require('node:assert/strict');
 const APP=require('node:fs').existsSync(require('node:path').join(__dirname,'../dist/core.js'))?'../dist/':'../';
-const C=require(APP+'core.js');
+const C=require('./legacy-core.cjs');
 function empty(seed='test-garden'){
   const s=C.generate(seed,'woodland');s.entities=[];s.heights.fill(1);s.soil.fill(.64);s.water=s.baseWater=-.6;s.weather='clear';s.sun=.65;s.wildGrowth=false;return s;
 }

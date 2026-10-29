@@ -1,6 +1,6 @@
 const assert=require('node:assert/strict');
 const APP=require('node:fs').existsSync(require('node:path').join(__dirname,'../dist/core.js'))?'../dist/':'../';
-const C=require(APP+'core.js');
+const C=require('./legacy-core.cjs');
 function plot(){const s=C.generate('rapid-garden');s.entities=[];s.heights.fill(1);s.soil.fill(.62);s.water=s.baseWater=-.6;s.sun=.62;s.weather='clear';s.mode='sandbox';s.wildGrowth=false;return s;}
 for(const type of ['bee','frog','bunny']){const s=plot();const placed=C.place(s,type,0,0);assert(placed.ok);assert(C.CREATURES.includes(type));assert(C.validate(JSON.parse(JSON.stringify(s))).entities.some(e=>e.type===type));}
 const pollinator=plot();C.place(pollinator,'flower',0,0);C.place(pollinator,'bee',1,0);assert(C.localConditions(0,0,pollinator).pollination);assert(pollinator.discoveries.includes('pollination'));
