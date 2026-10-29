@@ -10,6 +10,7 @@ A mobile-first, procedural 3D terrarium game. Build a planted landscape with soi
 
 ## Botanical focus release
 
+- **Graphics and interaction audit:** faster canopy fitting with the same glass clearance, identical procedural texture pixels with less generation work, shared rain geometry, and soil color updates without rebuilding terrain. Camera framing follows panel sizes and device safe areas; photo view uses the full safe viewport. Primary touch controls are larger, secondary text is clearer, and phones open in Observe mode. Startup recovery can download the original save and check for updates when 3D rendering cannot start. See [quality audit](QUALITY_AUDIT.md) for evidence and remaining device checks.
 - **Placement and camera refinement:** previews now use the exact next specimen's variant, starting size, health, pruning, and terrain adjustment. Individual clover, grass, flower, and mushroom stems meet local ground heights while keeping their shapes. Close-ups follow growth and pruning, survive phone rotation and graphics changes, and reset to the complete terrarium. Photo mode prevents planting/sculpting taps; mouse ray queries and previews are coalesced to one display frame.
 - **Rendering follow-up:** corrected inward-facing botanical and soil surfaces, continuous branch geometry and bark UVs, correctly oriented driftwood cuts, single-layer glass geometry, and water/background color processing. The new rendering regression suite checks these cases and repeated graphics switching without changing saved worlds.
 - **Animals are temporarily removed from play.** Wildlife is not rendered, generated, selectable, counted, or used for placement/ecology. Every animal record in an existing save remains intact, including identity, position, variant, size, health, and paid seeds. No save key or terrain data is reset.
@@ -59,7 +60,7 @@ The service worker intercepts only the game's own static shell, not API routes, 
 
 ## Mobile controls
 
-- Choose Plants or Terrain, then tap the soil to place an element. Swipe the tray horizontally to see more choices.
+- Phones open in Observe. Open Build, choose Plants or Terrain, then tap the soil to place an element. Swipe the tray horizontally to see more choices.
 - Drag to orbit and pinch to zoom. Observe collapses the tray. The handle reopens it.
 - Use the sliders icon for **Care & display**: mist, vent, sunlight, weather, growth speed, lighting lock, glass visibility, and graphics quality.
 - Inspect a plant or landscape element to harvest, move, remove, or open its **Close-up** view. Junipers also offer **Trim bonsai** and **Let regrow**. Reset the camera to return to the complete terrarium.

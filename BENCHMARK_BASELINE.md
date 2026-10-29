@@ -1,8 +1,21 @@
 # Dense-scene CPU diagnostics
 
+## Graphics and interaction audit — October 29, 2026
+
+The final fifty-step sample uses the same plant-only fixtures, Node v24.22.1, and Babylon.js 8.32.0. These are **NullEngine CPU diagnostics**, not phone/GPU frame rates; the separately sampled components must not be summed to infer FPS.
+
+| Elements / time | Animals / meshes | Animation ms median / p95 | Simulation tick ms median / p95 | NullEngine render ms median / p95 |
+| --- | --- | --- | --- | --- |
+| 50 / 1× | 0 / 148 | 0.30 / 0.61 | 0.41 / 1.65 | 1.75 / 2.89 |
+| 120 / 1× | 0 / 218 | 0.60 / 1.42 | 0.72 / 1.00 | 2.63 / 3.85 |
+| 220 / 1× | 0 / 318 | 1.44 / 1.77 | 2.31 / 9.23 | 6.84 / 8.21 |
+| 220 / 20× | 0 / 318 | 3.29 / 9.87 | 7.25 / 12.19 | 13.65 / 17.23 |
+
+A separate before/after Node CPU profile of the immediately preceding production revision isolated the canopy-fitting optimization: the dense 220-element/20× animation median changed from 7.37 to 3.29 ms (p95 16.12 to 10.36 ms). Own-code sample hits for `vesselFit` changed from 177 to 25, and for `vesselRadius` from 271 to 12. Profiling overhead, host load, simulation state, and garbage collection affect these short samples; this is evidence for the targeted CPU change, not a general speed multiplier or improved GPU performance. The final renderer additionally avoids unused pollen/glow allocations, shares rain geometry, and separates terrain tint from geometry updates. Five texture pixel hashes remain unchanged. See `QUALITY_AUDIT.md` for regression coverage.
+
 ## Botanical release
 
-The current plant-only fixtures ran with Node v24.22.1 and Babylon.js 8.32.0. These are **NullEngine CPU diagnostics**, not GPU or physical-phone frame rates. The same fifty-step fixtures include ten warm-up steps, full animation, all nine plants, and simulation at its normal 10 Hz cadence. Host load and garbage collection affect short samples.
+This earlier botanical-release sample predates the graphics/interaction audit above. It ran with Node v24.22.1 and Babylon.js 8.32.0. These are **NullEngine CPU diagnostics**, not GPU or physical-phone frame rates. The same fifty-step fixtures include ten warm-up steps, full animation, all nine plants, and simulation at its normal 10 Hz cadence. Host load and garbage collection affect short samples.
 
 | Elements / time | Animals / meshes | Animation ms median / p95 | Simulation tick ms median / p95 | NullEngine render ms median / p95 |
 | --- | --- | --- | --- | --- |

@@ -9,14 +9,14 @@ class Bus{
 async function app({waiting=true,controller=true,hidden=false,otherDialog=false}={}){
  const worker=()=>Object.assign(new Bus(),{state:'installed',messages:[],postMessage(message){this.messages.push(message);}});
  const registration=Object.assign(new Bus(),{waiting:waiting?worker():null,installing:null,updates:0,async update(){this.updates++;}});
- const window=Object.assign(new Bus(),{isSecureContext:true,timers:[],setInterval(fn,ms){this.timers.push({fn,ms});}}),document=Object.assign(new Bus(),{hidden}),sw=Object.assign(new Bus(),{controller:controller?{}:null,async register(){return registration;},ready:Promise.resolve({active:{}})});
+ const window=Object.assign(new Bus(),{isSecureContext:true,timers:[],setInterval(fn,ms){this.timers.push({fn,ms});},setTimeout(fn,ms){this.timers.push({fn,ms});return this.timers.length;},clearTimeout(id){if(this.timers[id-1])this.timers[id-1].cleared=true;}}),document=Object.assign(new Bus(),{hidden}),sw=Object.assign(new Bus(),{controller:controller?{}:null,async register(){return registration;},ready:Promise.resolve({active:{}})});
  const dialog={open:false,shown:0,showModal(){this.open=true;this.shown++;},close(){this.open=false;document.dispatchEvent({type:'close'});},addEventListener(type,fn){this[type]=fn;}},install={...dialog,shown:0},other={open:otherDialog},error={hidden:true,textContent:''},update={hidden:true,disabled:false},installButton={hidden:false,hasAttribute(){return false;}};
  const statuses=[{textContent:''}];document.querySelector=selector=>selector==='#updateDialog'?dialog:selector==='#installDialog'?install:selector==='dialog[open]'?[dialog,install,other].find(d=>d.open):selector==='[data-update-error]'?error:null;
  const check={disabled:false,textContent:''},indicator={hidden:true,disabled:false},updateStatus={textContent:''};document.querySelectorAll=selector=>selector==='[data-pwa-status]'?statuses:selector==='[data-update-app]'?[update]:selector==='[data-install-app]'?[installButton]:selector==='[data-update-error]'?[error]:selector==='[data-check-updates]'?[check]:selector==='[data-show-update]'?[indicator]:selector==='[data-update-status]'?[updateStatus]:[];
  const navigator={onLine:true,serviceWorker:sw},location={reloads:0,reload(){this.reloads++;}};
  vm.runInNewContext(fs.readFileSync(require.resolve(APP+'pwa.js'),'utf8'),{window,document,navigator,location,Event,matchMedia:()=>({matches:false}),Date,console});
  await window.emit('load');await Promise.resolve();
- const click=selector=>document.emit('click',{target:{closest:query=>query===selector?{}:null}});
+ const click=async selector=>{await document.emit('click',{target:{closest:query=>query===selector?{}:null}});for(let i=0;i<8;i++)await Promise.resolve();};
  return{window,document,navigator,sw,registration,dialog,other,error,update,location,worker,click,check,indicator,updateStatus};
 }
 (async()=>{
@@ -32,5 +32,6 @@ async function app({waiting=true,controller=true,hidden=false,otherDialog=false}
  a=await app({waiting:false,controller:false});await a.sw.emit('controllerchange');assert(!a.dialog.open&&!a.location.reloads,'first installation must not look like an update');
  a=await app({waiting:false});a.navigator.onLine=false;await a.window.VerdantPWA.checkForUpdates(true);assert.equal(a.registration.updates,0,'offline checks must not interrupt play');a.navigator.onLine=true;await a.window.emit('online');assert.equal(a.registration.updates,1,'reconnecting checks immediately');
  a=await app({waiting:false});await a.click('[data-check-updates]');assert.equal(a.registration.updates,1,'manual checks bypass the automatic throttle');assert.match(a.updateStatus.textContent,/latest available/);a.registration.update=async()=>{throw Error('offline server');};await a.click('[data-check-updates]');assert.match(a.updateStatus.textContent,/Could not check/);assert(!a.check.disabled,'a failed check must remain retryable');
+ a=await app({waiting:false});a.registration.update=()=>new Promise(()=>{});const pending=a.window.VerdantPWA.checkForUpdates(true);assert(a.check.disabled);const timeout=a.window.timers.findLast(t=>t.ms===15000&&!t.cleared);assert(timeout);timeout.fn();await pending;assert(!a.check.disabled);assert.match(a.updateStatus.textContent,/Could not check/);a.registration.update=async()=>{};await a.window.VerdantPWA.checkForUpdates(true);assert.match(a.updateStatus.textContent,/latest available/,'a timed-out check must remain retryable');
  console.log('Passed: startup/return/reconnection/periodic update checks, consent before activation, Later deferral, installation races, other tabs, and saving failure protection.');
 })().catch(error=>{console.error(error);process.exitCode=1;});

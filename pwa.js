@@ -48,9 +48,10 @@
     if(navigator.onLine===false){checkMessage=updateReady()?'A downloaded update is ready, even while offline.':'You are offline. Reconnect to check for updates.';status();return;}
     if(!registration){checkMessage='Update checks are preparing. Reopen the published app online if this continues.';status();return;}
     const now=Date.now();if(!force&&now-lastCheck<60000)return;lastCheck=now;checking=true;checkMessage='Checking for updates…';status();
-    try{await registration.update();checkMessage=registration.installing?'Downloading the latest release…':updateReady()?'An update is ready.':'You have the latest available release.';offerUpdate();}
+    let timeout;
+    try{const update=registration.update();if(window.setTimeout)await Promise.race([update,new Promise((resolve,reject)=>{timeout=window.setTimeout(()=>reject(Error('Update check timed out')),15000);})]);else await update;checkMessage=registration.installing?'Downloading the latest release…':updateReady()?'An update is ready.':'You have the latest available release.';offerUpdate();}
     catch(problem){checkMessage='Could not check for updates. Your installed game is still available. Reconnect and try again.';}
-    finally{checking=false;status();}
+    finally{if(timeout!==undefined)window.clearTimeout?.(timeout);checking=false;status();}
   }
   async function register(){
     if(!('serviceWorker'in navigator)||!window.isSecureContext){checkMessage='Open the published HTTPS app to install updates.';status();return;}

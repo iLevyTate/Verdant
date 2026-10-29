@@ -36,8 +36,17 @@
   const canvases={};
   function surfaceTexture(scene,mode,normal=false){
     const key=mode+(normal?' normal':' color'),m=materials(scene);if(m.has(key))return m.get(key);
-    if(!canvases[key]){const size=512,canvas=document.createElement('canvas');canvas.width=canvas.height=size;const ctx=canvas.getContext('2d'),data=ctx.createImageData(size,size),height=(x,y)=>{const u=x/size,v=y/size,n=(Math.sin(x*91.7+y*37.3)*43758.54)%1,vein=mode==='leaf'?Math.exp(-Math.abs(u-.5)*280)*.13+Math.exp(-Math.abs(((v*10+Math.abs(u-.5)*4)%1)-.5)*80)*.035:mode==='wood'?.10*Math.sin(Math.hypot(u-.5,v-.5)*210+Math.sin(u*30)*.6):0;return .55+vein+n*.035;};
-      for(let y=0;y<size;y++)for(let x=0;x<size;x++){const i=(y*size+x)*4,h=height(x,y);if(normal){let dx=(height(x+1,y)-height(x-1,y))*3,dy=(height(x,y+1)-height(x,y-1))*3,d=Math.hypot(dx,dy,1);data.data[i]=128-dx/d*127;data.data[i+1]=128-dy/d*127;data.data[i+2]=128+127/d;}else{const q=185+h*55;data.data[i]=q;data.data[i+1]=q+(mode==='leaf'?4:0);data.data[i+2]=q-6;}data.data[i+3]=255;}ctx.putImageData(data,0,0);canvases[key]=canvas;
+    if(!canvases[key]){
+      const size=512,stride=size+2,heights=new Float64Array(stride*stride),height=(x,y)=>{const u=x/size,v=y/size,n=(Math.sin(x*91.7+y*37.3)*43758.54)%1,vein=mode==='leaf'?Math.exp(-Math.abs(u-.5)*280)*.13+Math.exp(-Math.abs(((v*10+Math.abs(u-.5)*4)%1)-.5)*80)*.035:mode==='wood'?.10*Math.sin(Math.hypot(u-.5,v-.5)*210+Math.sin(u*30)*.6):0;return .55+vein+n*.035;};
+      // Padding reproduces the original edge derivatives. Share the expensive
+      // height samples between color and normal maps, then release the field.
+      for(let y=-1;y<=size;y++)for(let x=-1;x<=size;x++)heights[(y+1)*stride+x+1]=height(x,y);
+      for(const bump of mode==='wood'&&!normal?[false]:[false,true]){
+        const name=mode+(bump?' normal':' color');if(canvases[name])continue;
+        const canvas=document.createElement('canvas');canvas.width=canvas.height=size;const ctx=canvas.getContext('2d'),data=ctx.createImageData(size,size);
+        for(let y=0;y<size;y++)for(let x=0;x<size;x++){const i=(y*size+x)*4,p=(y+1)*stride+x+1,h=heights[p];if(bump){const dx=(heights[p+1]-heights[p-1])*3,dy=(heights[p+stride]-heights[p-stride])*3,d=Math.hypot(dx,dy,1);data.data[i]=128-dx/d*127;data.data[i+1]=128-dy/d*127;data.data[i+2]=128+127/d;}else{const q=185+h*55;data.data[i]=q;data.data[i+1]=q+(mode==='leaf'?4:0);data.data[i+2]=q-6;}data.data[i+3]=255;}
+        ctx.putImageData(data,0,0);canvases[name]=canvas;
+      }
     }
     const texture=new B.DynamicTexture(key,canvases[key],scene,true);texture.gammaSpace=!normal;texture.update(false);m.set(key,texture);return texture;
   }

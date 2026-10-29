@@ -1,5 +1,25 @@
 # Verdant quality and save-preservation audit
 
+## Graphics, interaction, and performance audit (October 29, 2026)
+
+This pass profiled the existing renderer and reviewed startup, touch targets, keyboard behavior, usable camera space, storage failures, and update completion. The renderer remains Babylon.js; these findings were in the application rather than a missing engine capability.
+
+| Finding | Correction and evidence |
+| --- | --- |
+| Every animated canopy transformed all of its fitting corners, even far from the glass. | A conservative cached cylinder rejects no valid boundary check: clearly contained plants take a fast path; plants near the wall/rim retain the detailed fit. The full transformed-vertex glass tests remain required. The dense 220-element/20× profiled animation median fell from 7.37 to 3.29 ms in this host run. This is CPU evidence, not GPU FPS. |
+| Procedural color and normal textures repeated the same expensive height calculations. | One temporary height field serves both texture maps, then is released. Five full-resolution pixel hashes match the preceding production textures exactly. |
+| Disabled effects and picking still allocated resources or performed work. | Remove the disabled glow layer and pollen instances, share one rain cylinder among all drops, skip Babylon's automatic down/up/move picking while retaining explicit editing rays, and skip dormant animal navigation work. The drawing buffer no longer remains preserved when no framebuffer export uses it. |
+| Moisture changes rebuilt terrain, normals, skirts, ground detail, and water-bed data. A sculpt could repeat that work on a later frame. | Color-only refreshes reuse cached static terrain tones. Geometry and pond-bed refreshes follow actual terrain revisions. Tests verify mist changes color without replacing geometry, sculpting refreshes once, and rendering does not mutate the world. |
+| Fixed camera layout guesses could put the vessel beneath controls; photo view retained the interface's viewport. | Camera bounds use measured panel rectangles and device safe areas, with coalesced ResizeObserver updates. Photo view uses the complete safe viewport. Projection tests cover portrait, landscape, desktop, and photo view; existing close-up rotation/growth tests remain active. |
+| Several controls were 24–35 px high, secondary text had weak contrast, and mobile rows could clip their contents. | Primary icon, placement, climate, and footer controls have 44 px targets; mobile cards/rows and landscape groups are sized together. Secondary text now measures at least 5.25:1 on the checked day surfaces and 6.70:1 on the checked night surface. Safe-area offsets and 16 px mobile form inputs are included. This is targeted improvement, not a full accessibility certification. |
+| Mobile started with an active planting tool hidden in the collapsed tray. Care/inspection dismissal and held shortcuts were inconsistent. | Mobile starts in Observe after load/import/replacement. Escape dismisses Care or inspection and restores focus; leaving the nonmodal Care sheet closes it. Unrelated modifier shortcuts and repeated one-shot keys do not edit the world. |
+| A failed renderer exposed inactive controls to keyboard/accessibility navigation and offered no direct download of the original save. | The app/canvas remain inert until scene readiness. Startup recovery exposes retry, exact saved-byte download, update checking/status, and install/download. Missing engine and failed WebGL paths keep the original save unchanged and can accept an update through a preservation checkpoint. Empty installations can update without creating a fictitious saved world. |
+| Failed world replacement closed its form and consumed session Undo; an indefinitely pending update check could remain stuck. | Replace/import forms close and add Undo only after the backup succeeds. Update checks time out after 15 seconds and permit retry; applying an update still requires user consent and a successful preservation checkpoint. |
+
+Evidence: `tests/guru.test.cjs`, expanded production DOM and update tests, all prior geometry/save/scene suites, and the CPU diagnostic in `BENCHMARK_BASELINE.md`. Babylon's [scene optimization guidance](https://github.com/BabylonJS/Documentation/blob/master/content/features/featuresDeepDive/scene/optimize_your_scene.md) and W3C's [target size](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html) and [text contrast](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html) references informed these changes.
+
+The live browser still reports WebGL unavailable. Actual shader output, phone layout/touch feel, heat, battery, and GPU frame rates remain physical-device acceptance items in `MOBILE_QA.md`. No save schema, key, plant anchor, terrain height, progression, or archived animal record is reset.
+
 ## Placement, terrain contact, and camera refinement (October 29, 2026)
 
 The follow-up traced placement through the core constructor, preview renderer, root geometry, camera projection, and production pointer handlers. It found these reproducible mismatches:
