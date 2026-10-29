@@ -1,5 +1,22 @@
 # Verdant quality and save-preservation audit
 
+## Placement, terrain contact, and camera refinement (October 29, 2026)
+
+The follow-up traced placement through the core constructor, preview renderer, root geometry, camera projection, and production pointer handlers. It found these reproducible mismatches:
+
+| Finding | Correction and evidence |
+| --- | --- |
+| All previews used variant 0 and a 0.6 size multiplier. Real seedlings start at 0.4 growth, while decorations start at full size. | A read-only `previewEntity` creates the exact deterministic specimen used by placement, with the same RNG sequence. Previewing does not spend seeds, reserve an ID, or modify state. Ghosts use the actual plant renderer, including health proportions, pruning, local root adjustments, and vessel fitting. Placement checks reserve the chosen variant. Healthy mature outlines show held trims or the eventual natural canopy when regrowing. |
+| Flowers and mushrooms anchored all stems at the cluster center; clover and grass were sheared onto a common plane. | Each complete stem cluster samples its own local ground height and translates vertically, preserving its shape and normals. Root spans/bounds are generated with the model, and shared templates stay intact. Offsets are bounded to 0.6 world units and cached in growth/health/roll bands; moss and succulent retain their existing bounded slope treatment. Render-only fitting keeps every plant inside the glass. Extreme slopes or oversized glass-constrained legacy plants may still have approximate contact. |
+| Rotating a phone reset the close-up zoom limit, growth could outgrow the frame, and camera target changes could override the intended Reset distance. | Home framing is recalculated for the new viewport, close-ups retain relative zoom/orientation, and target changes preserve spherical camera parameters. Growth/pruning bounds refresh the selected framing. Graphics changes preserve the selected close-up; world/history rebuilds exit an orphaned close-up safely. Reset restores the full terrarium. |
+| Pointer bursts repeated expensive terrain picks; photo mode could still edit; mature outlines could remain during sculpting. | Pointer rays and previews use the latest event once per animation frame and cancel when leaving or hiding the UI. Touch placement remains immediate; placement, touch drags, and pinch gestures clear the ghost instead of leaving an overlay. Clean photo view permits camera gestures while blocking planting/sculpting taps. Terrain tools hide both specimen ghosts. Visible-element telemetry excludes archived animals. |
+
+`tests/refinements.test.cjs` compares actual placed/preview mesh buffers and transforms, checks per-stem contact on sloped and curved terrain, preserves cluster normals/shape and serialized state, invalidates reused previews after world changes, and projects growing/pruned close-ups through four phone layouts, quality switching, and Reset. Production DOM tests cover coalesced rays, cancelled previews, and photo-mode edits. The full prior logic, storage, update, geometry, glass, and pruning checks remain required.
+
+The CPU-only density diagnostic completed at 50/120/220 elements. In this host sample, the dense 220-element/20× case reported animation median/p95 6.50/18.71 ms, simulation tick 5.73/6.93 ms, and NullEngine render 11.50/20.74 ms. These components use different sampling cadences, must not be added to infer device FPS, and do not measure GPU, touch, heat, or battery. Physical-phone appearance and performance remain acceptance items.
+
+No world schema, storage key, saved terrain, entity anchor, archived animal record, or progression is reset. Save-before-update consent and recovery protections remain active.
+
 ## Rendering follow-up (October 29, 2026)
 
 The previous geometry tests checked finite buffers, bounds, material groups, and UV coverage but missed the direction of surface normals. An independent comparison with Babylon's native upward-facing ground exposed inward-facing botanical primitives, soil, and cross-section geometry. Triangle winding is corrected at the geometry helpers and terrain grid. Rising cactus columns keep their distinct parametric winding; mushroom caps and both driftwood cuts receive explicit orientation checks. Terrain sculpting and bonsai deformation recalculate normals from the corrected indices.

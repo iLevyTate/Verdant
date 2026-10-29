@@ -4,7 +4,7 @@
 const C=TerrariumCore,B=BABYLON,V=B.Vector3,TAU=Math.PI*2;
 const rgb=h=>{const c=B.Color3.FromHexString(h);return[c.r,c.g,c.b];},mix=(c,f)=>c.map(x=>Math.min(1,x*f));
 class MeshBuilder{
- constructor(detail=1){this.detail=detail;this.p=[];this.c=[];this.uv=[];this.indices=[[],[],[]];this.part=0;}
+ constructor(detail=1){this.detail=detail;this.p=[];this.c=[];this.uv=[];this.indices=[[],[],[]];this.part=0;this.roots=[];}
  vertex(p,c,uv=[0,0]){const id=this.p.length/3;this.p.push(...p);this.c.push(...c,1);this.uv.push(...uv);return id;}
  // Helpers describe outward surfaces in right-handed order; Babylon stores
  // left-handed triangles. Convert winding before generating normals/culling.
@@ -27,6 +27,7 @@ class MeshBuilder{
   for(const back of sides){const start=this.p.length/3;starts.push(start);for(let j=0;j<=rows;j++){const t=j/rows,w=shape==='heart'?Math.sin(Math.PI*Math.pow(t,.64))**.6:shape==='grass'?Math.max(.015,(1-t)**.7):Math.sin(Math.PI*t)**.75,serration=shape==='fern'?1+.10*Math.sin(t*TAU*5):1;for(let k=0;k<5;k++){const across=(k-2)/2,q=across*width*w*serration,spine=Math.sin(t*Math.PI),height=a[1]+(b[1]-a[1])*t+spine*curl+fold*(1-Math.abs(across))*spine+back*thickness*Math.sin(t*Math.PI)*(1-across*across);const pigment=edge&&Math.abs(across)>.9?edge:mix(c,.92+.08*(1-Math.abs(across)));this.vertex([a[0]+dx*t+sx*q,height,a[2]+dz*t+sz*q],pigment,[k/4,t]);}}for(let j=0;j<rows;j++)for(let k=0;k<4;k++){const q=start+j*5+k;if(back===1){this.tri(q,q+1,q+5);this.tri(q+1,q+6,q+5);}else{this.tri(q,q+5,q+1);this.tri(q+1,q+5,q+6);}}}
   if(thickness)for(let j=0;j<rows;j++)for(const k of[0,4]){const a=starts[0]+j*5+k,b=starts[1]+j*5+k;this.tri(a,b,a+5);this.tri(a+5,b,b+5);}
  }
+ rootGroup(start,x,z){const bounds=[Infinity,Infinity,Infinity,-Infinity,-Infinity,-Infinity];for(let i=start*3;i<this.p.length;i+=3)for(let j=0;j<3;j++){bounds[j]=Math.min(bounds[j],this.p[i+j]);bounds[j+3]=Math.max(bounds[j+3],this.p[i+j]);}this.roots.push({start,count:this.p.length/3-start,x,z,bounds});}
  mesh(name,scene,material,updatable=false){const mesh=new B.Mesh(name,scene),data=new B.VertexData,indices=this.indices.flat(),normals=[];B.VertexData.ComputeNormals(this.p,indices,normals);Object.assign(data,{positions:this.p,indices,normals,colors:this.c,uvs:this.uv});data.applyToMesh(mesh,updatable);mesh.material=material;mesh.isPickable=false;mesh.subMeshes=[];let offset=0;for(let i=0;i<3;i++){const count=this.indices[i].length;if(count)new B.SubMesh(i,0,this.p.length/3,offset,count,mesh);offset+=count;}return mesh;}
 }
 function build(type,variant,scene,quality='auto'){
@@ -40,11 +41,13 @@ function build(type,variant,scene,quality='auto'){
   for(let j=0;j<Math.round(210*detail);j++){const a=r()*TAU,d=Math.sqrt(r())*.58,x=Math.cos(a)*d,z=Math.sin(a)*d,base=.10*(1-(d/.6)**2),h=.035+r()*.045;g.part=1;g.tube([x,base,z],[x+.005,base+h,z-.005],.002,.001,stem,4);g.part=0;for(let k=1;k<5;k++)for(const side of[-1,1]){const th=a+k*1.7+side,p=[x,base+h*k/5,z],L=.018+r()*.016;g.blade(p,[x+Math.cos(th)*L,p[1]+L*.3,z+Math.sin(th)*L],.007,k%2?leaf:young,{rows:3,curl:.003,fold:.002});}}
  }
  else if(type==='clover')for(let j=0;j<11;j++){
-  const angle=r()*TAU,d=Math.sqrt(r())*.52,x=Math.cos(angle)*d,z=Math.sin(angle)*d,h=.18+r()*.25,p=[x+.035,h,z-.03];g.part=1;g.curve([[x,0,z],[x+.02,h*.6,z-.01],p],.005,.003,stem,5);g.part=0;for(let k=0;k<3;k++){const a=angle+k/3*TAU;g.blade(p,[p[0]+Math.cos(a)*.21,p[1]+.015,p[2]+Math.sin(a)*.21],.095,j%2?leaf:young,{shape:'heart',rows:10,curl:.016,fold:.008});}
+  const rootStart=g.p.length/3,angle=r()*TAU,d=Math.sqrt(r())*.52,x=Math.cos(angle)*d,z=Math.sin(angle)*d,h=.18+r()*.25,p=[x+.035,h,z-.03];g.part=1;g.curve([[x,0,z],[x+.02,h*.6,z-.01],p],.005,.003,stem,5);g.part=0;for(let k=0;k<3;k++){const a=angle+k/3*TAU;g.blade(p,[p[0]+Math.cos(a)*.21,p[1]+.015,p[2]+Math.sin(a)*.21],.095,j%2?leaf:young,{shape:'heart',rows:10,curl:.016,fold:.008});}
+  g.rootGroup(rootStart,x,z);
  }
  else if(type==='flower')for(let j=0;j<5;j++){
-  const a=r()*TAU,d=Math.sqrt(r())*.5,x=Math.cos(a)*d,z=Math.sin(a)*d,h=.45+r()*.55,p=[x+.05,h,z+.02];g.part=1;g.curve([[x,0,z],[x-.025,h*.4,z],p],.009,.004,stem,7);g.part=0;for(let k=0;k<3;k++){const y=h*(.18+k*.19),th=a+k*2.3;g.blade([x,y,z],[x+Math.cos(th)*.22,y+.08,z+Math.sin(th)*.22],.045,leaf,{rows:7,curl:.025});}
+  const rootStart=g.p.length/3,a=r()*TAU,d=Math.sqrt(r())*.5,x=Math.cos(a)*d,z=Math.sin(a)*d,h=.45+r()*.55,p=[x+.05,h,z+.02];g.part=1;g.curve([[x,0,z],[x-.025,h*.4,z],p],.009,.004,stem,7);g.part=0;for(let k=0;k<3;k++){const y=h*(.18+k*.19),th=a+k*2.3;g.blade([x,y,z],[x+Math.cos(th)*.22,y+.08,z+Math.sin(th)*.22],.045,leaf,{rows:7,curl:.025});}
   g.part=2;const petal=rgb(['#e8e5ce','#d8c28d','#d2b8b0'][variant]);for(let k=0;k<12;k++){const th=k/12*TAU,L=.12+r()*.055;g.blade(p,[p[0]+Math.cos(th)*L,p[1]-.015+r()*.018,p[2]+Math.sin(th)*L],.028,petal,{shape:'heart',rows:7,curl:.025,fold:.002});}g.ellipsoid([p[0],p[1]+.018,p[2]],[.05,.026,.05],rgb('#9b7c32'),12,6);for(let k=0;k<20;k++){const th=k*2.4,dd=Math.sqrt(k/20)*.043;g.ellipsoid([p[0]+Math.cos(th)*dd,p[1]+.038,p[2]+Math.sin(th)*dd],[.007,.008,.007],rgb('#d2b25a'),5,3);}
+  g.rootGroup(rootStart,x,z);
  }
  else if(type==='tree'){
   g.part=1;const path=Array.from({length:11},(_,i)=>{const t=i/10;return[Math.sin(t*8)*.075,t*2.15,Math.sin(t*5)*.05];});g.curve(path,.115,.012,bark,14);for(let k=0;k<7;k++){const a=k/7*TAU;g.curve([[0,.11,0],[Math.cos(a)*.17,.04,Math.sin(a)*.17],[Math.cos(a)*.36,.009,Math.sin(a)*.36]],.045,.004,bark,8);}
@@ -53,7 +56,7 @@ function build(type,variant,scene,quality='auto'){
   }
  }
  else if(type==='grass'){
-  const c=rgb(['#68744a','#a29668','#6b7d5d'][variant]);for(let j=0;j<48;j++){const a=r()*TAU,d=r()*.28,h=.30+r()*.62,p=[Math.cos(a)*d,.005,Math.sin(a)*d];g.blade(p,[p[0]+Math.cos(a)*.25,h,p[2]+Math.sin(a)*.25],.013,c,{rows:9,shape:'grass',curl:h*.15,fold:.007});}
+  const c=rgb(['#68744a','#a29668','#6b7d5d'][variant]);for(let j=0;j<48;j++){const rootStart=g.p.length/3,a=r()*TAU,d=r()*.28,h=.30+r()*.62,p=[Math.cos(a)*d,.005,Math.sin(a)*d];g.blade(p,[p[0]+Math.cos(a)*.25,h,p[2]+Math.sin(a)*.25],.013,c,{rows:9,shape:'grass',curl:h*.15,fold:.007});g.rootGroup(rootStart,p[0],p[2]);}
  }
  else if(type==='succulent'){
   const base=rgb(['#7d947c','#93a28a','#658879'][variant]),edge=rgb('#a58f83');for(let ring=0;ring<4;ring++)for(let j=0;j<9-ring;j++){const a=j/(9-ring)*TAU+ring*.43,L=.53-ring*.105;g.blade([0,.05+ring*.035,0],[Math.cos(a)*L,.18+ring*.14,Math.sin(a)*L],.17-ring*.018,base,{rows:13,curl:.07,fold:.018,thickness:.045,edge});}
@@ -63,7 +66,8 @@ function build(type,variant,scene,quality='auto'){
   column(0,0,0,1.5,.21);g.part=0;g.tube([0,.60,0],[-.37,.60,0],.10,.10,skin,12);column(-.37,.60,0,.5,.10);g.part=0;g.tube([0,.86,0],[.34,.86,0],.085,.085,skin,12);column(.34,.86,0,.35,.085);
  }
  else if(type==='mushroom')for(let j=0;j<5;j++){
-  const a=r()*TAU,d=r()*.45,h=.22+r()*.38,R=.12+r()*.13,p=[Math.cos(a)*d,h,Math.sin(a)*d];g.part=1;g.curve([[p[0]-.025,0,p[2]],[p[0],h*.6,p[2]+.012],p],.024,.016,rgb('#c9bc9c'),10);g.part=0;const first=g.p.length/3,seg=28,rings=10,cap=rgb(['#a88b59','#947047','#b29c6c'][variant]);for(let q=0;q<=rings;q++){const t=q/rings*Math.PI*.55;for(let k=0;k<=seg;k++){const th=k/seg*TAU,rr=Math.sin(t)*R;g.vertex([p[0]+Math.cos(th)*rr,h+Math.cos(t)*R*.46,p[2]+Math.sin(th)*rr],mix(cap,.95+.07*Math.cos(th*5+t*3)),[.5+Math.cos(th)*rr/(R*2),.5+Math.sin(th)*rr/(R*2)]);}}for(let q=0;q<rings;q++)for(let k=0;k<seg;k++){const n=first+q*(seg+1)+k;g.tri(n,n+1,n+seg+1);g.tri(n+1,n+seg+2,n+seg+1);}g.part=2;for(let k=0;k<22;k++){const th=k/22*TAU;g.tube([p[0]+Math.cos(th)*.02,h-.012,p[2]+Math.sin(th)*.02],[p[0]+Math.cos(th)*R*.96,h-R*.07,p[2]+Math.sin(th)*R*.96],.002,.001,rgb('#b9ab8a'),3);}
+  const rootStart=g.p.length/3,a=r()*TAU,d=r()*.45,h=.22+r()*.38,R=.12+r()*.13,p=[Math.cos(a)*d,h,Math.sin(a)*d];g.part=1;g.curve([[p[0]-.025,0,p[2]],[p[0],h*.6,p[2]+.012],p],.024,.016,rgb('#c9bc9c'),10);g.part=0;const first=g.p.length/3,seg=28,rings=10,cap=rgb(['#a88b59','#947047','#b29c6c'][variant]);for(let q=0;q<=rings;q++){const t=q/rings*Math.PI*.55;for(let k=0;k<=seg;k++){const th=k/seg*TAU,rr=Math.sin(t)*R;g.vertex([p[0]+Math.cos(th)*rr,h+Math.cos(t)*R*.46,p[2]+Math.sin(th)*rr],mix(cap,.95+.07*Math.cos(th*5+t*3)),[.5+Math.cos(th)*rr/(R*2),.5+Math.sin(th)*rr/(R*2)]);}}for(let q=0;q<rings;q++)for(let k=0;k<seg;k++){const n=first+q*(seg+1)+k;g.tri(n,n+1,n+seg+1);g.tri(n+1,n+seg+2,n+seg+1);}g.part=2;for(let k=0;k<22;k++){const th=k/22*TAU;g.tube([p[0]+Math.cos(th)*.02,h-.012,p[2]+Math.sin(th)*.02],[p[0]+Math.cos(th)*R*.96,h-R*.07,p[2]+Math.sin(th)*R*.96],.002,.001,rgb('#b9ab8a'),3);}
+  g.rootGroup(rootStart,p[0]-.025,p[2]);
  }
  else if(type==='rock')for(let j=0;j<3;j++){const R=j?.16+r()*.12:.42;g.ellipsoid([j?(r()-.5)*.8:0,R*.32,j?(r()-.5)*.7:0],[R*1.15,R*.67,R*.85],rgb(['#a9aaa0','#9b9e91','#b4b1a1'][variant]),24,14,.34,variant+7+j);}
  else if(type==='log'){
@@ -71,7 +75,7 @@ function build(type,variant,scene,quality='auto'){
  }
  else if(type==='crystal')for(let j=0;j<6;j++){const a=r()*TAU,d=r()*.3,h=.28+r()*.55,R=.07+r()*.08,x=Math.cos(a)*d,z=Math.sin(a)*d;g.tube([x,0,z],[x,h,z],R,R,rgb('#c4c6b9'),6);g.tube([x,h,z],[x,h+R*1.8,z],R,0,rgb('#e4e4d7'),6);}
  else return null;
- const material=root.VerdantGraphics.botanicalMaterial(scene,type),mesh=g.mesh('botanical-'+type+'-'+variant,scene,material);mesh.isVisible=false;mesh.metadata={botanical:true,type,variant};return mesh;
+ const material=root.VerdantGraphics.botanicalMaterial(scene,type),mesh=g.mesh('botanical-'+type+'-'+variant,scene,material);mesh.isVisible=false;mesh.metadata={botanical:true,type,variant,roots:g.roots};return mesh;
 }
 function groundScatter(scene,state){
  const g=new MeshBuilder,r=C.rng(state.seed+' natural ground litter'),anchors=[];

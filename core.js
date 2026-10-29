@@ -174,9 +174,15 @@
     const cost=excludeId!==null||s.mode==='sandbox'?0:COSTS[type]||0;if(s.seeds<cost)return{ok:false,reason:'Harvest mature plants for more seeds, or switch to Free build in the Field Guide.',conditions,cost};
     return{ok:true,conditions,cost,fit:suitability({type,x,z},s,conditions)};
   }
+  // A preview uses the same deterministic specimen as placement, without
+  // spending seeds, reserving an ID, or changing the saved world.
+  function previewEntity(s,type,x,z,options={}){
+    const def=ELEMENTS[type];if(!def||def.tool||def.creature&&!WILDLIFE_ENABLED)return null;
+    const random=rng(s.seed+s.nextId+'placed');return{id:s.nextId,type,x,z,rotation:Number.isFinite(options.rotation)?options.rotation:random()*Math.PI*2,scale:(def.scale||1)*clamp(options.size||1,.6,1.5),growth:def.category==='plants'?.40:1,health:.94,variant:Math.floor(random()*3),phase:random()*Math.PI*2,origin:'player',paid:s.mode==='sandbox'?0:COSTS[type]||0,harvest:0};
+  }
   function place(s,type,x,z,options={}){
     const check=placement(s,type,x,z,null,options);if(!check.ok)return check;
-    const random=rng(s.seed+s.nextId+'placed'),def=ELEMENTS[type],e={id:s.nextId++,type,x,z,rotation:Number.isFinite(options.rotation)?options.rotation:random()*Math.PI*2,scale:(def.scale||1)*clamp(options.size||1,.6,1.5),growth:def.category==='plants'?.40:1,health:.94,variant:Math.floor(random()*3),phase:random()*Math.PI*2,origin:'player',paid:check.cost,harvest:0};
+    const def=ELEMENTS[type],e=previewEntity(s,type,x,z,options);e.paid=check.cost;s.nextId++;
     s.seeds-=check.cost;s.entities.push(e);s.placed++;if(def.category==='plants'){s.stats.planted++;s.quests.plant=true;}if(def.creature){if(!s.stats.lifeTypes.includes(type))s.stats.lifeTypes.push(type);s.quests.life=true;}if(!s.seen.includes(type))s.seen.push(type);return{ok:true,entity:e,events:updateProgress(s)};
   }
   function relocate(s,id,x,z){const e=s.entities.find(e=>e.id===id);if(!e)return{ok:false,reason:'Choose an element to move.'};const check=placement(s,e.type,x,z,id);if(!check.ok)return check;e.x=x;e.z=z;return{ok:true,entity:e,events:updateProgress(s)};}
@@ -273,6 +279,6 @@
     for(const e of o.entities)if(e.type==='tree'&&((e.pruning!==undefined&&(!Number.isFinite(e.pruning)||e.pruning<.52||e.pruning>1))||(e.regrowing!==undefined&&(typeof e.regrowing!=='boolean'||e.regrowing&&e.pruning===undefined))))throw Error('This world has invalid bonsai trimming data.');
     for(const e of o.entities){e.origin=['wild','player','spread'].includes(e.origin)?e.origin:'wild';e.paid=finite(e.paid,0,0,20);e.harvest=finite(e.harvest,0,0,1);}return o;
   }
-  const api={clamp,hash,rng,noise,BIOMES,ELEMENTS,RADIUS,VESSEL_PROFILE,vesselRadius,GRID_RINGS,GRID_SEGMENTS,MAX_ENTITIES,PLANTS,CREATURES,WILDLIFE_ENABLED,visualHour,COSTS,DISCOVERIES,MISSIONS,RANKS,generate,profile,heightAt,surfaceAt,renderScale,animalRadius,animalHeight,terrainPenalty,objectRadius,setAnimalPositions,animalPosition,vertexPoint,localConditions,weatherAt,season,habitatTarget,sculpt,suitability,placement,place,relocate,remove,trimBonsai,regrowBonsai,care,newCare,advanceCare,careStatus,setCareMode,recordSculpt,isReady,harvest,rank,missionProgress,updateProgress,advance,validate};
+  const api={clamp,hash,rng,noise,BIOMES,ELEMENTS,RADIUS,VESSEL_PROFILE,vesselRadius,GRID_RINGS,GRID_SEGMENTS,MAX_ENTITIES,PLANTS,CREATURES,WILDLIFE_ENABLED,visualHour,COSTS,DISCOVERIES,MISSIONS,RANKS,generate,profile,heightAt,surfaceAt,renderScale,animalRadius,animalHeight,terrainPenalty,objectRadius,setAnimalPositions,animalPosition,vertexPoint,localConditions,weatherAt,season,habitatTarget,sculpt,suitability,placement,previewEntity,place,relocate,remove,trimBonsai,regrowBonsai,care,newCare,advanceCare,careStatus,setCareMode,recordSculpt,isReady,harvest,rank,missionProgress,updateProgress,advance,validate};
   if(typeof module!=='undefined')module.exports=api;else root.TerrariumCore=api;
 })(typeof window!=='undefined'?window:globalThis);
