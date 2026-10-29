@@ -10,6 +10,7 @@ A mobile-first, procedural 3D terrarium game. Build a planted landscape with soi
 
 ## Botanical focus release
 
+- **Rendering follow-up:** corrected inward-facing botanical and soil surfaces, continuous branch geometry and bark UVs, correctly oriented driftwood cuts, single-layer glass geometry, and water/background color processing. The new rendering regression suite checks these cases and repeated graphics switching without changing saved worlds.
 - **Animals are temporarily removed from play.** Wildlife is not rendered, generated, selectable, counted, or used for placement/ecology. Every animal record in an existing save remains intact, including identity, position, variant, size, health, and paid seeds. No save key or terrain data is reset.
 - **All nine plant models have been rebuilt:** arching fern fronds, fine moss shoots on an irregular cushion, clover leaflets, curved daisy petals and stamens, detailed mushroom caps/gills, branched juniper sprays, ribbed/spined cacti, solid waxy succulent leaves, and folded grass blades. Bark, foliage, and flower parts use separate physically based surfaces with UVs and fine surface detail. Groundcover conforms to local slopes.
 - **Scanned soil, bark, stone, and desert sand:** twelve bundled 1K maps provide color, normal detail, and ambient-occlusion/roughness/metal channels. Mineral grit and leaf litter add small real geometry. All maps are included in offline/PWA downloads. See [asset credits](assets/ATTRIBUTION.md).

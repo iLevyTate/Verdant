@@ -1,6 +1,20 @@
 # Verdant quality and save-preservation audit
 
-## Current release — botanical focus (October 28, 2026)
+## Rendering follow-up (October 29, 2026)
+
+The previous geometry tests checked finite buffers, bounds, material groups, and UV coverage but missed the direction of surface normals. An independent comparison with Babylon's native upward-facing ground exposed inward-facing botanical primitives, soil, and cross-section geometry. Triangle winding is corrected at the geometry helpers and terrain grid. Rising cactus columns keep their distinct parametric winding; mushroom caps and both driftwood cuts receive explicit orientation checks. Terrain sculpting and bonsai deformation recalculate normals from the corrected indices.
+
+Curved stems and branches now share continuous rings across bends, with distance-based bark UVs. Driftwood cut faces use the exact endpoint frame and radius, closing the branch cleanly. A closed-surface edge test rejects gaps, while UV checks reject texture restarts at each bend.
+
+Water used to apply a display gamma transform before the default rendering pipeline applied another. It now outputs linear color when image processing runs as a post-process, with display conversion retained for the direct-render fallback. Background clear color follows the same pipeline state. Lighting also refreshes when sunlight or pipeline state changes without advancing the clock. A failed pipeline setup restores material-level image processing. Relevant engine documentation: [custom shader image processing](https://doc.babylonjs.com/features/featuresDeepDive/materials/shaders/image_processing/) and [default rendering pipeline / clear color](https://doc.babylonjs.com/features/featuresDeepDive/postProcesses/defaultRenderingPipeline).
+
+Glass and reflection ribbons previously combined duplicated front/back geometry with disabled face culling, blending the same physical surface twice. They now use one geometric surface with both view directions available; glass uses two-sided lighting. Tests reject repeated transparent triangles.
+
+Evidence: `tests/rendering.test.cjs` checks analytic outward/upward normals, cactus/mushroom/cut-face directions, closed branch edges, continuous bark UVs, graphics-switch resource counts, water/background processing states, direct sunlight changes, and sculpted terrain normals. Rendering and graphics switching must leave the serialized world exactly unchanged, including archived animal records. Existing save/update, mobile DOM, pruning, and scene suites remain required. No save format, storage key, terrain heights, animal data, or progression is reset by this release.
+
+This is code and headless geometry validation. The cloud browser still has no WebGL context; real GPU shader output, visual appearance, heat, battery, and physical phone performance remain unverified acceptance items.
+
+## Botanical focus release (October 28, 2026)
 
 This release temporarily suspends wildlife. Older wildlife-related audit results below describe retained, dormant code, not currently available gameplay. Animal records remain in existing saves; no renderer nodes, picking targets, live collisions, pollination effects, generation, or visible wildlife controls remain active. Archived health/identity/position/size data is frozen, and version 1/2 saves retain their terrain and progression.
 

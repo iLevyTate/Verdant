@@ -6,9 +6,21 @@ const rgb=h=>{const c=B.Color3.FromHexString(h);return[c.r,c.g,c.b];},mix=(c,f)=
 class MeshBuilder{
  constructor(detail=1){this.detail=detail;this.p=[];this.c=[];this.uv=[];this.indices=[[],[],[]];this.part=0;}
  vertex(p,c,uv=[0,0]){const id=this.p.length/3;this.p.push(...p);this.c.push(...c,1);this.uv.push(...uv);return id;}
- tri(a,b,c){this.indices[this.part].push(a,b,c);}
+ // Helpers describe outward surfaces in right-handed order; Babylon stores
+ // left-handed triangles. Convert winding before generating normals/culling.
+ tri(a,b,c){this.indices[this.part].push(a,c,b);}
  tube(a,b,r1,r2,c,segments=8){segments=Math.max(4,Math.round(segments*this.detail));const d=new V(b[0]-a[0],b[1]-a[1],b[2]-a[2]),length=d.length(),axis=d.normalize(),u=V.Cross(axis,Math.abs(axis.y)<.9?V.Up():V.Right()).normalize(),v=V.Cross(axis,u).normalize(),first=this.p.length/3;for(let k=0;k<2;k++)for(let j=0;j<=segments;j++){const t=j/segments*TAU,r=k?r2:r1,p=k?b:a;this.vertex([p[0]+(u.x*Math.cos(t)+v.x*Math.sin(t))*r,p[1]+(u.y*Math.cos(t)+v.y*Math.sin(t))*r,p[2]+(u.z*Math.cos(t)+v.z*Math.sin(t))*r],c,[j/segments,(k?length:0)*2]);}for(let j=0;j<segments;j++){const q=first+j;this.tri(q,q+1,q+segments+1);this.tri(q+1,q+segments+2,q+segments+1);}}
- curve(points,r1,r2,c,segments=8){for(let i=1;i<points.length;i++){const t=(i-1)/(points.length-1),u=i/(points.length-1);this.tube(points[i-1],points[i],r1+(r2-r1)*t,r1+(r2-r1)*u,c,segments);}}
+ curve(points,r1,r2,c,segments=8,caps=null){
+  segments=Math.max(4,Math.round(segments*this.detail));const start=this.p.length/3,lengths=[0],frames=[];
+  for(let i=1;i<points.length;i++)lengths[i]=lengths[i-1]+V.Distance(V.FromArray(points[i-1]),V.FromArray(points[i]));
+  let previous=null;for(let i=0;i<points.length;i++){
+   const before=points[Math.max(0,i-1)],after=points[Math.min(points.length-1,i+1)],axis=V.FromArray(after).subtract(V.FromArray(before)).normalize();let u=previous?.subtract(axis.scale(V.Dot(previous,axis)));
+   if(!u||u.lengthSquared()<.00001)u=V.Cross(axis,Math.abs(axis.y)<.9?V.Up():V.Right());u.normalize();const v=V.Cross(axis,u).normalize(),radius=r1+(r2-r1)*lengths[i]/Math.max(.00001,lengths.at(-1)),point=V.FromArray(points[i]);previous=u;frames.push({point,u,v,radius});
+   for(let j=0;j<=segments;j++){const angle=j/segments*TAU,offset=u.scale(Math.cos(angle)*radius).add(v.scale(Math.sin(angle)*radius));this.vertex(point.add(offset).asArray(),c,[j/segments,lengths[i]*2]);}
+   if(i)for(let j=0;j<segments;j++){const a=start+(i-1)*(segments+1)+j,b=start+i*(segments+1)+j;this.tri(a,a+1,b);this.tri(a+1,b+1,b);}
+  }
+  if(caps){const part=this.part;this.part=caps.part;for(const end of[0,frames.length-1]){const {point,u,v,radius}=frames[end],center=this.vertex(point.asArray(),caps.color,[.5,.5]),ring=this.p.length/3;for(let j=0;j<=segments;j++){const angle=j/segments*TAU,offset=u.scale(Math.cos(angle)*radius).add(v.scale(Math.sin(angle)*radius));this.vertex(point.add(offset).asArray(),caps.color,[.5+Math.cos(angle)*.5,.5+Math.sin(angle)*.5]);}for(let j=0;j<segments;j++)end?this.tri(center,ring+j,ring+j+1):this.tri(center,ring+j+1,ring+j);}this.part=part;}
+ }
  ellipsoid(p,r,c,seg=14,rings=8,irregular=0,seed=11){seg=Math.max(6,Math.round(seg*this.detail));rings=Math.max(3,Math.round(rings*this.detail));const start=this.p.length/3;for(let j=0;j<=rings;j++)for(let k=0;k<=seg;k++){const ph=j/rings*Math.PI,a=k/seg*TAU,x=Math.sin(ph)*Math.cos(a),y=Math.cos(ph),z=Math.sin(ph)*Math.sin(a),n=1+irregular*(C.noise(x*3.1+y,z*3.1+y,seed)-.5);this.vertex([p[0]+x*r[0]*n,p[1]+y*r[1]*n,p[2]+z*r[2]*n],mix(c,.93+.07*y),[k/seg,j/rings]);}for(let j=0;j<rings;j++)for(let k=0;k<seg;k++){const q=start+j*(seg+1)+k;this.tri(q,q+1,q+seg+1);this.tri(q+1,q+seg+2,q+seg+1);}}
  blade(a,b,width,c,{rows=7,curl=.04,fold=.008,shape='lance',thickness=0,edge=null}={}){
   rows=Math.max(3,Math.round(rows*this.detail));const dx=b[0]-a[0],dz=b[2]-a[2],length=Math.hypot(dx,dz),sx=length>1e-6?-dz/length:1,sz=length>1e-6?dx/length:0,sides=thickness?[1,-1]:[1],starts=[];
@@ -47,7 +59,7 @@ function build(type,variant,scene,quality='auto'){
   const base=rgb(['#7d947c','#93a28a','#658879'][variant]),edge=rgb('#a58f83');for(let ring=0;ring<4;ring++)for(let j=0;j<9-ring;j++){const a=j/(9-ring)*TAU+ring*.43,L=.53-ring*.105;g.blade([0,.05+ring*.035,0],[Math.cos(a)*L,.18+ring*.14,Math.sin(a)*L],.17-ring*.018,base,{rows:13,curl:.07,fold:.018,thickness:.045,edge});}
  }
  else if(type==='cactus'){
-  const skin=rgb(['#728d69','#8e9e76','#587f66'][variant]);function column(x,y,z,H,R){const start=g.p.length/3,seg=Math.max(24,Math.round(40*detail)),rings=Math.max(12,Math.round(20*detail));g.part=0;for(let j=0;j<=rings;j++){const t=j/rings,cap=Math.sqrt(Math.max(0,1-Math.max(0,(t-.83)/.17)**2));for(let k=0;k<=seg;k++){const a=k/seg*TAU,rad=R*(1+.065*Math.cos(a*10))*cap;g.vertex([x+Math.cos(a)*rad,y+t*H,z+Math.sin(a)*rad],skin,[k/seg,t]);}}for(let j=0;j<rings;j++)for(let k=0;k<seg;k++){const q=start+j*(seg+1)+k;g.tri(q,q+1,q+seg+1);g.tri(q+1,q+seg+2,q+seg+1);}g.part=2;for(let k=0;k<10;k++)for(let j=1;j<9;j++){const a=k/10*TAU,p=[x+Math.cos(a)*R*1.07,y+j/10*H,z+Math.sin(a)*R*1.07];g.ellipsoid(p,[.009,.009,.009],rgb('#c2bba0'),5,3);for(let n=0;n<3;n++){const th=a+(n-1)*.5;g.tube(p,[p[0]+Math.cos(th)*.025,p[1]+(n-1)*.018,p[2]+Math.sin(th)*.025],.0013,.0002,rgb('#d3cbb4'),3);}}}
+  const skin=rgb(['#728d69','#8e9e76','#587f66'][variant]);function column(x,y,z,H,R){const start=g.p.length/3,seg=Math.max(24,Math.round(40*detail)),rings=Math.max(12,Math.round(20*detail));g.part=0;for(let j=0;j<=rings;j++){const t=j/rings,cap=Math.sqrt(Math.max(0,1-Math.max(0,(t-.83)/.17)**2));for(let k=0;k<=seg;k++){const a=k/seg*TAU,rad=R*(1+.065*Math.cos(a*10))*cap;g.vertex([x+Math.cos(a)*rad,y+t*H,z+Math.sin(a)*rad],skin,[k/seg,t]);}}for(let j=0;j<rings;j++)for(let k=0;k<seg;k++){const q=start+j*(seg+1)+k;g.tri(q,q+seg+1,q+1);g.tri(q+1,q+seg+1,q+seg+2);}g.part=2;for(let k=0;k<10;k++)for(let j=1;j<9;j++){const a=k/10*TAU,p=[x+Math.cos(a)*R*1.07,y+j/10*H,z+Math.sin(a)*R*1.07];g.ellipsoid(p,[.009,.009,.009],rgb('#c2bba0'),5,3);for(let n=0;n<3;n++){const th=a+(n-1)*.5;g.tube(p,[p[0]+Math.cos(th)*.025,p[1]+(n-1)*.018,p[2]+Math.sin(th)*.025],.0013,.0002,rgb('#d3cbb4'),3);}}}
   column(0,0,0,1.5,.21);g.part=0;g.tube([0,.60,0],[-.37,.60,0],.10,.10,skin,12);column(-.37,.60,0,.5,.10);g.part=0;g.tube([0,.86,0],[.34,.86,0],.085,.085,skin,12);column(.34,.86,0,.35,.085);
  }
  else if(type==='mushroom')for(let j=0;j<5;j++){
@@ -55,7 +67,7 @@ function build(type,variant,scene,quality='auto'){
  }
  else if(type==='rock')for(let j=0;j<3;j++){const R=j?.16+r()*.12:.42;g.ellipsoid([j?(r()-.5)*.8:0,R*.32,j?(r()-.5)*.7:0],[R*1.15,R*.67,R*.85],rgb(['#a9aaa0','#9b9e91','#b4b1a1'][variant]),24,14,.34,variant+7+j);}
  else if(type==='log'){
-  g.part=1;g.curve([[-.70,.13,0],[-.2,.20,.05],[.35,.24,-.01],[.80,.31,.09]],.14,.095,bark,16);g.curve([[-.04,.21,.03],[.04,.42,.18],[.13,.55,.35]],.047,.009,bark,9);g.curve([[.36,.25,0],[.49,.43,-.15],[.62,.5,-.3]],.035,.006,bark,7);g.part=2;for(const [x,y,z,R]of[[-.70,.13,0,.13],[.80,.31,.09,.089]]){const c=g.vertex([x,y,z],rgb('#c1aa82'),[.5,.5]);for(let k=0;k<20;k++){const a=k/20*TAU,b=(k+1)/20*TAU;g.tri(c,g.vertex([x,y+Math.cos(a)*R,z+Math.sin(a)*R],rgb('#bea983'),[.5+Math.cos(a)*.5,.5+Math.sin(a)*.5]),g.vertex([x,y+Math.cos(b)*R,z+Math.sin(b)*R],rgb('#bea983'),[.5+Math.cos(b)*.5,.5+Math.sin(b)*.5]));}}
+  g.part=1;g.curve([[-.70,.13,0],[-.2,.20,.05],[.35,.24,-.01],[.80,.31,.09]],.14,.095,bark,16,{part:2,color:rgb('#bea983')});g.curve([[-.04,.21,.03],[.04,.42,.18],[.13,.55,.35]],.047,.009,bark,9);g.curve([[.36,.25,0],[.49,.43,-.15],[.62,.5,-.3]],.035,.006,bark,7);
  }
  else if(type==='crystal')for(let j=0;j<6;j++){const a=r()*TAU,d=r()*.3,h=.28+r()*.55,R=.07+r()*.08,x=Math.cos(a)*d,z=Math.sin(a)*d;g.tube([x,0,z],[x,h,z],R,R,rgb('#c4c6b9'),6);g.tube([x,h,z],[x,h+R*1.8,z],R,0,rgb('#e4e4d7'),6);}
  else return null;
