@@ -1,5 +1,13 @@
 # Verdant quality and save-preservation audit
 
+## Desktop workspace and settings persistence (October 29, 2026)
+
+The desktop pass replaces crowded floating controls with a bounded build panel, a centered editing dock, and a right rail shared by garden status, grouped settings, journey, and inspection. The inventory scrolls independently and collapses to a narrow rail. Desktop settings separate Garden, Display, and Files; their content scrolls between fixed section/save controls. Header labels expose Settings and Terrarium. Camera bounds include the dock, hint, and inspector. Desktop keyboard shortcuts continue after button clicks, the ninth plant has a shortcut, and Observe clicks inspect existing plants.
+
+The reported settings problem exposed two concrete gaps: focused dropdown values were reassigned by periodic UI refreshes, and the terrarium form closed before its debounced save was confirmed. Focused controls are no longer overwritten. Discrete display/care/weather preferences now save immediately. Terrarium changes use a candidate copy and a dated snapshot, verify the save before applying the world, and retain the form/current garden on failure. Storage writes are read back, including preservation points. Successful status is shown only after confirmation, and retry/export remain available on failure. Desktop settings stay open as focus moves to the garden.
+
+Expanded production DOM/storage tests cover focused edits across UI refresh, immediate stored values, a second app loading those values, silently discarded writes, and failed terrarium saves followed by retry. All prior suites remain required. Browser UI checks used production code with a NullEngine/readiness fixture at four desktop viewports; actual browser-local settings and terrarium choices survived reload. This validates UI layout and persistence, not GPU output. See `DESKTOP_QA.md` and its labelled settings screenshot for evidence. Existing save keys, schema, terrain, plant progress, archived animals, backup history, and user-approved app updates remain preserved.
+
 ## Base correction and configurable vessels (October 29, 2026)
 
 The supplied overhead screenshot exposed the contact shadow's rectangular carrier. Its dynamic texture did not declare an alpha channel. The replacement is a circular disc with explicit texture alpha and alpha blending, no depth writes, transparent outer pixels, and a restrained radial falloff. The display base has a thinner bevel, optional limestone/slate finishes, and a glass-only option that brings the studio floor up to the vessel bottom. Base and shadow footprints follow the chosen vessel.

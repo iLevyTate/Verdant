@@ -10,6 +10,7 @@ A mobile-first, procedural 3D terrarium game. Build a planted landscape with soi
 
 ## Botanical focus release
 
+- **Desktop workspace and reliable settings:** a collapsible build panel, centered editing dock, readable right-side panels, direct Terrarium access, and Garden / Display / Files settings groups. Settings show a persistent saved status. Focused dropdown choices survive UI refreshes, display preferences save immediately, and terrarium changes apply only after a verified save. See [desktop verification](DESKTOP_QA.md) for layout and reload evidence.
 - **Choose your terrarium:** Care & display → **Shape, size & base** offers a round bowl, glass cylinder, tall jar, or oval garden; Compact, Standard, and Roomy growing areas; and limestone, dark slate, or glass-only bases. The same choices are available in New world. Changing an existing vessel keeps its terrain edits, plants, and progress, saves a restore point first, and supports Undo/Redo. Footprint changes map active plants to the same relative ground positions without stretching their models; archived animals remain untouched. A transparent circular contact shadow replaces the visible gray square beneath the pot.
 - **Graphics and interaction audit:** faster canopy fitting with the same glass clearance, identical procedural texture pixels with less generation work, shared rain geometry, and soil color updates without rebuilding terrain. Camera framing follows panel sizes and device safe areas; photo view uses the full safe viewport. Primary touch controls are larger, secondary text is clearer, and phones open in Observe mode. Startup recovery can download the original save and check for updates when 3D rendering cannot start. See [quality audit](QUALITY_AUDIT.md) for evidence and remaining device checks.
 - **Placement and camera refinement:** previews now use the exact next specimen's variant, starting size, health, pruning, and terrain adjustment. Individual clover, grass, flower, and mushroom stems meet local ground heights while keeping their shapes. Close-ups follow growth and pruning, survive phone rotation and graphics changes, and reset to the complete terrarium. Photo mode prevents planting/sculpting taps; mouse ray queries and previews are coalesced to one display frame.
@@ -70,6 +71,8 @@ The service worker intercepts only the game's own static shell, not API routes, 
 - Pause freezes the procedural simulation. Garden care needs still follow real time. Growth speed and lighting remain independent of the 1×, 5×, and 20× simulation clock.
 
 Desktop shortcuts: Space pauses, M mists, I inspects, R rotates, −/+ changes element size, H hides the UI, Escape selects Observe, and Ctrl/Command Z or Ctrl/Command Shift Z undo and redo.
+
+On desktop, the top-bar **Settings** button opens Garden, Display, and Files sections. **Terrarium** opens shape, growing area, and base choices directly. Click a plant while in Observe to inspect it. Keys **1–9** choose plants; the left panel's arrow collapses the building tools. **Saved on this device** confirms a completed write; use **Save settings** to retry explicitly. Storage failures keep export/retry controls visible.
 
 ## The living landscape
 
