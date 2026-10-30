@@ -7,12 +7,13 @@
     const storage=()=>typeof getStorage==='function'?getStorage():getStorage;
     const parse=raw=>validate(JSON.parse(raw));
     const failure=(code,error)=>({ok:false,code,error});
+    function write(store,key,data){store.setItem(key,data);if(store.getItem(key)!==data)throw Error('Browser storage did not retain this write.');}
     function history(){try{const rows=JSON.parse(storage().getItem(HISTORY)||'[]');return Array.isArray(rows)?rows.filter(row=>row&&typeof row.id==='string'&&typeof row.data==='string'&&Number.isFinite(row.at)):[];}catch(error){return[];}}
     function remember(data,label,force=false){
       try{
         parse(data);const now=Date.now(),rows=history();if(rows[0]?.data===data||!force&&rows[0]&&now-rows[0].at<300000)return true;
         rows.unshift({id:now+'-'+Math.random().toString(36).slice(2,9),at:now,label:String(label).slice(0,60),data});
-        let bytes=0;const kept=[];for(const row of rows)if(kept.length<5&&bytes+row.data.length<=768000){kept.push(row);bytes+=row.data.length;}if(!kept.some(row=>row.data===data))return false;storage().setItem(HISTORY,JSON.stringify(kept));return true;
+        let bytes=0;const kept=[];for(const row of rows)if(kept.length<5&&bytes+row.data.length<=768000){kept.push(row);bytes+=row.data.length;}if(!kept.some(row=>row.data===data))return false;write(storage(),HISTORY,JSON.stringify(kept));return true;
       }catch(error){return false;}
     }
     function snapshots(){
@@ -35,23 +36,23 @@
       try{
         const data=JSON.stringify(state);parse(data);const store=storage(),current=store.getItem(KEY);
         if(current!==expected)return failure('conflict');
-        if(current!==null){parse(current);store.setItem(BACKUP,current);}
+        if(current!==null){parse(current);write(store,BACKUP,current);}
         // A dedicated checkpoint survives subsequent autosaves in the new release.
-        if(checkpoint)store.setItem(CHECKPOINT,data);
-        else if(current!==null&&store.getItem(CHECKPOINT)===null)store.setItem(CHECKPOINT,current);
-        store.setItem(KEY,data);expected=data;const historySaved=remember(checkpoint||manual?data:current||data,checkpoint?'Before app update':manual?'Manual save':'Automatic restore point',checkpoint||manual);return{ok:true,historySaved};
+        if(checkpoint)write(store,CHECKPOINT,data);
+        else if(current!==null&&store.getItem(CHECKPOINT)===null)write(store,CHECKPOINT,current);
+        store.setItem(KEY,data);expected=data;const confirmed=store.getItem(KEY);if(confirmed!==data){expected=current;return failure('write-not-confirmed');}const historySaved=remember(checkpoint||manual?data:current||data,checkpoint?'Before app update':manual?'Manual save':'Automatic restore point',checkpoint||manual);return{ok:true,historySaved};
       }catch(error){return failure('storage-failed',error);}
     }
     function raw(){try{return storage().getItem(KEY)??storage().getItem(RECOVERY)??storage().getItem(BACKUP)??storage().getItem(CHECKPOINT);}catch(error){return null;}}
     function checkpointOriginal(){
-      try{const store=storage(),current=store.getItem(KEY);if(current===null)return failure('no-world');if(current!==expected)return failure('conflict');store.setItem(CHECKPOINT,current);return{ok:true};}catch(error){return failure('storage-failed',error);}
+      try{const store=storage(),current=store.getItem(KEY);if(current===null)return failure('no-world');if(current!==expected)return failure('conflict');write(store,CHECKPOINT,current);return{ok:true};}catch(error){return failure('storage-failed',error);}
     }
     function restoreFromRaw(data){
       try{
         const state=parse(data),store=storage(),current=store.getItem(KEY);
         if(current!==expected)return failure('conflict');
-        if(current!==null)store.setItem(RECOVERY,current);
-        store.setItem(KEY,data);expected=data;blocked=false;loaded=true;if(current!==null)remember(current,'Before restoring a world',true);return{ok:true,state};
+        if(current!==null)write(store,RECOVERY,current);
+        write(store,KEY,data);expected=data;blocked=false;loaded=true;if(current!==null)remember(current,'Before restoring a world',true);return{ok:true,state};
       }catch(error){return failure('storage-failed',error);}
     }
     function restoreBackup(){
