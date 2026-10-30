@@ -1,5 +1,9 @@
 # Dense-scene CPU diagnostics
 
+## Configurable vessels — October 29, 2026
+
+After adding elliptical terrain queries and vessel profiles, the same Standard-bowl density fixture completed with 148/218/318 meshes at 50/120/220 elements. At 220 elements and 20× time, animation median/p95 was 3.19/12.76 ms, simulation ticks 6.02/9.47 ms, and NullEngine rendering 12.61/16.59 ms. At 220 elements and 1×, animation was 1.41/2.29 ms. This short CPU-only sample shows no obvious median regression against the preceding audit; it does not establish performance on a phone GPU or a speed improvement. Profiles differ in visible footprint, but retain the same terrain resolution and element cap. Geometry tests cover all 12 shape/size combinations separately.
+
 ## Graphics and interaction audit — October 29, 2026
 
 The final fifty-step sample uses the same plant-only fixtures, Node v24.22.1, and Babylon.js 8.32.0. These are **NullEngine CPU diagnostics**, not phone/GPU frame rates; the separately sampled components must not be summed to infer FPS.

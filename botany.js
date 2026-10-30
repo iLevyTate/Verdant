@@ -78,8 +78,8 @@ function build(type,variant,scene,quality='auto'){
  const material=root.VerdantGraphics.botanicalMaterial(scene,type),mesh=g.mesh('botanical-'+type+'-'+variant,scene,material);mesh.isVisible=false;mesh.metadata={botanical:true,type,variant,roots:g.roots};return mesh;
 }
 function groundScatter(scene,state){
- const g=new MeshBuilder,r=C.rng(state.seed+' natural ground litter'),anchors=[];
- for(let j=0;j<560;j++){const a=r()*TAU,d=Math.sqrt(r())*(C.RADIUS-.08),x=Math.cos(a)*d,z=Math.sin(a)*d,y=C.heightAt(x,z,state),start=g.p.length/3,stone=state.biome==='desert'||r()<.72,R=.012+r()*.03;
+ const g=new MeshBuilder,r=C.rng(state.seed+' natural ground litter'),anchors=[],spec=C.vesselSpec(state);
+ for(let j=0;j<560;j++){const a=r()*TAU,d=Math.sqrt(r())*(C.RADIUS-.08),x=Math.cos(a)*d*spec.x,z=Math.sin(a)*d*spec.z,y=C.heightAt(x,z,state),start=g.p.length/3,stone=state.biome==='desert'||r()<.72,R=.012+r()*.03;
   if(stone){g.part=0;g.ellipsoid([x,y+R*.15,z],[R,R*.48,R*.75],rgb(['#b5b1a0','#91978b','#c3b69e'][j%3]),7,4,.28,j%37);}
   else{g.part=1;const angle=r()*TAU,L=.045+r()*.065;g.blade([x,y+.006,z],[x+Math.cos(angle)*L,y+.008,z+Math.sin(angle)*L],L*.24,rgb(j%2?'#85734d':'#a28c60'),{rows:5,curl:.012,fold:.003});}
   anchors.push({start,count:g.p.length/3-start,x,z,y});

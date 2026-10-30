@@ -1,5 +1,17 @@
 # Verdant quality and save-preservation audit
 
+## Base correction and configurable vessels (October 29, 2026)
+
+The supplied overhead screenshot exposed the contact shadow's rectangular carrier. Its dynamic texture did not declare an alpha channel. The replacement is a circular disc with explicit texture alpha and alpha blending, no depth writes, transparent outer pixels, and a restrained radial falloff. The display base has a thinner bevel, optional limestone/slate finishes, and a glass-only option that brings the studio floor up to the vessel bottom. Base and shadow footprints follow the chosen vessel.
+
+Care & display and Field Guide → Your world now open a separate terrarium editor; it does not generate a replacement landscape. Four shapes (round bowl, cylinder, tall jar, oval), three footprints (0.80×, 1.00×, 1.24×), and three base choices are also available in New world. Native labelled controls and illustrated radio choices expose the options; the growing-area summary updates before Apply. Vessel and creation dialogs retain dark readable text in night lighting.
+
+Terrain vertices, exact height/soil sampling, sculpting, hydrology, self-seeding, ground litter, pond depth texture, rain, vessel walls/rims/reflections, glass clearance, decoration fitting, and camera bounds share the selected footprint/profile. Plant meshes keep their physical proportions. An explicit footprint edit scales only active entity ground coordinates and the pond anchor to preserve relative positions. It retains every terrain height and soil sample, entity ID/type/variant/size/health/growth/pruning/harvest field, seeds, progression, care, and every archived animal record. The terrain grid remains the same resolution at all sizes. Compact glass may fit foliage more tightly; new placement still reserves whole-object or mature-canopy clearance.
+
+Existing version 1/2 worlds default to the original Standard round bowl and limestone base. Loading an update does not resize or regenerate them; unsupported vessel values stop validation rather than silently selecting a different world. Applying a design requires a successful dated snapshot, then records session Undo. Cancel and failed snapshots leave the existing state unchanged. Shape changes release the prior glass geometry and reuse their materials; repeated switching does not accumulate scene resources.
+
+Evidence: `tests/vessels.test.cjs` checks old/new save round-trips, exact original-byte backups, archived records, all 12 shape/size combinations, every actual plant/decoration vertex against the selected glass, real ray intersections after sculpting, four camera layouts, transparent shadow pixels, base finishes, and repeated resource counts. Expanded production DOM tests check cancellation, Apply, Undo/Redo, export, failed snapshots, and New world options. Full prior suites remain required. The live cloud browser again reports WebGL unavailable, so final GPU appearance of the base and new vessels remains a real-device acceptance item.
+
 ## Graphics, interaction, and performance audit (October 29, 2026)
 
 This pass profiled the existing renderer and reviewed startup, touch targets, keyboard behavior, usable camera space, storage failures, and update completion. The renderer remains Babylon.js; these findings were in the application rather than a missing engine capability.
