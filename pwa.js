@@ -1,6 +1,6 @@
 (function(){
   'use strict';
-  const APP_RELEASE='release-c072a2d6c24d868d';
+  const APP_RELEASE='release-43b66af68119c23f';
   let canEdit=!(typeof MessageChannel!=='undefined'&&navigator.serviceWorker?.controller?.postMessage),blockReason='';
   let promptEvent,registration,applyingUpdate=false,offlineReady=false,deferredWorker,needsReload=false,lastCheck=0,checking=false,checkMessage='',reloading=false;
   let hadController=!!navigator.serviceWorker?.controller;
@@ -8,6 +8,7 @@
   const installed=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
   const updateReady=()=>!!registration?.waiting||needsReload;
   function status(){
+    all('[data-app-build]').forEach(e=>e.textContent='Build '+APP_RELEASE.replace('release-','')+(lastCheck?' · last check '+new Date(lastCheck).toLocaleTimeString():''));
     const ready=updateReady(),text=installed()?'Installed · '+(navigator.onLine?'on your home screen':'playing offline'):offlineReady?(navigator.onLine?'Ready to play offline':'Playing offline'):'Connect once to prepare offline play';
     all('[data-pwa-status]').forEach(e=>e.textContent=text);
     all('[data-install-app]').forEach(e=>{e.hidden=installed()||(e.hasAttribute('data-native-install')&&!promptEvent);e.textContent=promptEvent?'Install Verdant':'Install / add to home screen';});

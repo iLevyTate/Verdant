@@ -13,7 +13,7 @@ class HeadlessEngine extends B.NullEngine{
  resize(){}
 }
 const sandbox={BABYLON:{...B,Engine:HeadlessEngine},TerrariumCore:C,window:{innerWidth:1363,innerHeight:936,devicePixelRatio:1,addEventListener(){},removeEventListener(){}},document:{addEventListener(){},removeEventListener(){},createElement(){return new Canvas(256,256)},body:{classList:{toggle(){}}}},console,Math};
-Object.assign(global,sandbox);for(const file of['graphics.js','botany.js','creatures.js','world.js'])vm.runInThisContext(fs.readFileSync(require.resolve(APP+file),'utf8'),{filename:file});
+Object.assign(global,sandbox);for(const file of['graphics.js','dynamics.js','botany.js','creatures.js','world.js'])vm.runInThisContext(fs.readFileSync(require.resolve(APP+file),'utf8'),{filename:file});
 const renderer=new sandbox.window.TerrariumWorld({getBoundingClientRect(){return{left:0,top:0,width:1363,height:936}}},C.generate());
 assert(renderer.terrain&&renderer.vessel&&renderer.visuals.size>10,'the scene should contain editable soil, glass and generated flora');
 assert(renderer.terrain.getTotalVertices()===3073,'the editable landscape should have the expected vertex grid');

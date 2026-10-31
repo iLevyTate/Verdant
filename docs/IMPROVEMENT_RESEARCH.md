@@ -2,7 +2,7 @@
 
 Reviewed October 30, 2026, against `6a82b83f85837abef520f69cd9c0dcb24fafc72d` on `main`.
 
-This is a research and implementation plan. The recommendations below have not been implemented by this audit. Production game code and saved worlds were not changed.
+This is the original research plan. The audit itself did not change production code or saved worlds. The subsequent software implementation and remaining device acceptance are recorded in [IMPLEMENTATION_4.md](IMPLEMENTATION_4.md).
 
 ## Recommendation
 

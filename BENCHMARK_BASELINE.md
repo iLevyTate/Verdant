@@ -1,5 +1,18 @@
 # Dense-scene CPU diagnostics
 
+## Version 4, October 31, 2026
+
+Default sampling now runs 900 frames with 120 warm-up frames: 780 measured animation/render samples and 130 simulation ticks per case. The 390 × 844 Auto, flat-soil, all-species fixture remains plant-only, on Node 24.22.1 and Babylon 8.32.0. This is NullEngine CPU work, not a sustained device/GPU benchmark.
+
+| Elements / time | Plant triangles | Animation ms median / p95 | Simulation ms median / p95 | Null render ms median / p95 |
+| --- | ---: | --- | --- | --- |
+| 50 / 1× | 250,968 | 0.21 / 0.71 | 0.34 / 3.20 | 2.64 / 4.58 |
+| 120 / 1× | 614,060 | 0.49 / 1.28 | 1.01 / 3.45 | 5.45 / 8.14 |
+| 220 / 1× | 1,131,924 | 0.96 / 2.23 | 2.35 / 4.44 | 10.37 / 14.21 |
+| 220 / 20× | 1,131,924 | 0.74 / 1.92 | 11.92 / 16.66 | 11.72 / 16.24 |
+
+The research fixture referenced 2,889,300 plant triangles at 220 elements; current overview detail references about 61% fewer. This does not establish a GPU/FPS improvement. Longer sampling, later ecological state, material/plugin work, host load and garbage collection prevent direct timing comparison with the earlier fifty-step tables. The 20× simulation and render submission still represent material CPU work. Components are measured separately and must not be added to infer FPS. Use the matching exported fixtures and downloadable diagnostics for the ten-minute real-device procedure in MOBILE_QA.md.
+
 ## Configurable vessels — October 29, 2026
 
 After adding elliptical terrain queries and vessel profiles, the same Standard-bowl density fixture completed with 148/218/318 meshes at 50/120/220 elements. At 220 elements and 20× time, animation median/p95 was 3.19/12.76 ms, simulation ticks 6.02/9.47 ms, and NullEngine rendering 12.61/16.59 ms. At 220 elements and 1×, animation was 1.41/2.29 ms. This short CPU-only sample shows no obvious median regression against the preceding audit; it does not establish performance on a phone GPU or a speed improvement. Profiles differ in visible footprint, but retain the same terrain resolution and element cap. Geometry tests cover all 12 shape/size combinations separately.

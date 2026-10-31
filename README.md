@@ -2,11 +2,19 @@
 
 <p align="center"><img src="assets/verdant-logo.png" width="150" alt="Verdant terrarium logo"></p>
 
-[Play Verdant](https://ilevytate.github.io/Verdant/) · [Download game ZIP](https://github.com/iLevyTate/Verdant/archive/refs/heads/main.zip) · [Social preview image](assets/verdant-social.jpg)
+[Play Verdant](https://ilevytate.github.io/Verdant/) · [Download game ZIP](https://github.com/iLevyTate/Verdant/archive/refs/heads/main.zip) · [Social preview image](assets/verdant-social-botanical.jpg)
 
 A mobile-first, procedural 3D terrarium game. Build a planted landscape with soil, stone, driftwood, and water, then follow the Garden Journey. Wildlife is temporarily paused while the game focuses on botanical and terrain realism.
 
 **Plain HTML, CSS, and JavaScript. No Jekyll, Ruby, framework, compilation, or backend is required to host the game.** The Babylon.js engine and environment lighting are bundled locally, and the interface uses device fonts with no external font requests.
+
+## Version 4 refinements
+
+Device preferences now follow you between gardens. Named slots, storage health, specimen search, coordinate placement, numeric transforms, individual bonsai branches, camera buttons, battery mode and scene PNG export are available in Settings/inspection. Scoped Undo keeps later growth and progress. One editing tab owns saves where Web Locks is available; updates verify offline bytes and preserve assets used by older tabs.
+
+Plants use projected-size detail and local leaf motion. Soil responds to slope and wetness, Cinematic adds pond reflections, and four compressed color maps have offline decoders plus JPEG fallback. The dense phone fixture references 1,131,924 plant triangles versus the audit's 2,889,300. This measures geometry, not GPU speed. Existing gardens and archived animals remain preserved.
+
+See the [complete implementation record](docs/IMPLEMENTATION_4.md) for all fourteen recommendations, controls, data semantics and verification limits. Babylon.js remains the engine; physical-device graphics and native lifecycle/accessibility acceptance are still required.
 
 ## Botanical focus release
 
@@ -36,8 +44,8 @@ This repository is prepared for **Deploy from a branch → main → / (root)**. 
 ### Repository logo and social preview
 
 - The transparent logo is at [assets/verdant-logo.png](assets/verdant-logo.png).
-- The earlier illustrated GitHub social preview is [assets/verdant-social.jpg](assets/verdant-social.jpg), exactly **1280 × 640**, under 1 MB.
-- To set the repository card, open **Settings → General → Social preview → Edit → Upload an image**, choose that JPG, and save. That earlier key art includes animals and does not represent the current botanical-only build.
+- The current botanical social preview is [assets/verdant-social-botanical.jpg](assets/verdant-social-botanical.jpg), **1280 × 640**, 198,152 bytes.
+- To set the repository card, open **Settings → General → Social preview → Edit → Upload an image**, choose that JPG, and save. The botanical key art is promotional; the earlier animal-containing art is retained as a historical asset.
 - Launcher icons and the game header use the new emblem. See [BRANDING.md](BRANDING.md) for source artwork and generation notes.
 
 ### Other static hosts
@@ -56,7 +64,7 @@ Open `http://localhost:8080`. Installing npm dependencies is not required simply
 
 ## Install and play offline
 
-The primary website is **https://ilevytate.github.io/Verdant/** and opens directly into the app. Choose **Get app** in the top bar for installation instructions or **Download game files (.zip)**. The ZIP always comes from the current `main` branch and contains the complete app and its assets. Installation is also available in **Care & display**. Chrome and Edge can show their native prompt; the fallback panel explains iPhone/iPad, Android, and Mac installation. Wait for **Ready to play offline** before disconnecting. The first complete cache is roughly 14 MB. Installed and browser play use local device storage; use world export/import to transfer saves between hosts or devices.
+The primary website is **https://ilevytate.github.io/Verdant/** and opens directly into the app. Choose **Get app** in the top bar for installation instructions or **Download game files (.zip)**. The ZIP always comes from the current `main` branch and contains the complete app and its assets. Installation is also available in **Care & display**. Chrome and Edge can show their native prompt; the fallback panel explains iPhone/iPad, Android, and Mac installation. Wait for **Ready to play offline** before disconnecting. The verified shell is approximately 14.8 MiB, including the engine, original JPEG maps, compressed color maps and local decoders. Wait for its completion; previous release caches and gardens use additional origin storage. Installed and browser play use local device storage; use world export/import to transfer saves between hosts or devices.
 
 The service worker intercepts only the game's own static shell, not API routes, account data, downloads, or other projects on the same origin. Updates keep one complete release together until you choose **Update app**. Before committing runtime changes, run `npm run release:cache`. It fingerprints the complete offline game; `npm run check` rejects a stale fingerprint, so runtime updates cannot accidentally reuse the previous release cache unnoticed.
 
@@ -91,8 +99,6 @@ Worlds save automatically in the current browser. New world offers JSON export a
 The procedural terrain and growth simulation runs while the page is visible. Garden care needs catch up from the last saved timestamp when you return, including offline. Self-sustaining worlds remain safe while away. Earlier saves default to Self-sustaining to avoid retroactive neglect. The scene limit is 220 visible elements, and natural spreading is capped at thirty offspring. Up to 220 archived animals can be retained separately without consuming planting or self-seeding capacity.
 
 ## Development and checks
-
-See [improvement research and next-work priorities](docs/IMPROVEMENT_RESEARCH.md) for the October 30, 2026 review of settings scope, concurrent saves, release consistency, geometry budgets, botanical realism, and remaining device checks. That report distinguishes current behavior from proposed changes.
 
 ```
 npm ci

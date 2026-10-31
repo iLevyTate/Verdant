@@ -4,8 +4,8 @@
 const C=TerrariumCore,B=BABYLON,V=B.Vector3,TAU=Math.PI*2;
 const rgb=h=>{const c=B.Color3.FromHexString(h);return[c.r,c.g,c.b];},mix=(c,f)=>c.map(x=>Math.min(1,x*f));
 class MeshBuilder{
- constructor(detail=1){this.detail=detail;this.p=[];this.c=[];this.uv=[];this.indices=[[],[],[]];this.part=0;this.roots=[];}
- vertex(p,c,uv=[0,0]){const id=this.p.length/3;this.p.push(...p);this.c.push(...c,1);this.uv.push(...uv);return id;}
+ constructor(detail=1){this.detail=detail;this.p=[];this.c=[];this.uv=[];this.indices=[[],[],[]];this.part=0;this.roots=[];this.branches=[];this.organs=[];}
+ vertex(p,c,uv=[0,0]){const id=this.p.length/3;this.p.push(...p);this.organs.push(0,0,0,-1);this.c.push(...c,1);this.uv.push(...uv);return id;}
  // Helpers describe outward surfaces in right-handed order; Babylon stores
  // left-handed triangles. Convert winding before generating normals/culling.
  tri(a,b,c){this.indices[this.part].push(a,c,b);}
@@ -23,22 +23,23 @@ class MeshBuilder{
  }
  ellipsoid(p,r,c,seg=14,rings=8,irregular=0,seed=11){seg=Math.max(6,Math.round(seg*this.detail));rings=Math.max(3,Math.round(rings*this.detail));const start=this.p.length/3;for(let j=0;j<=rings;j++)for(let k=0;k<=seg;k++){const ph=j/rings*Math.PI,a=k/seg*TAU,x=Math.sin(ph)*Math.cos(a),y=Math.cos(ph),z=Math.sin(ph)*Math.sin(a),n=1+irregular*(C.noise(x*3.1+y,z*3.1+y,seed)-.5);this.vertex([p[0]+x*r[0]*n,p[1]+y*r[1]*n,p[2]+z*r[2]*n],mix(c,.93+.07*y),[k/seg,j/rings]);}for(let j=0;j<rings;j++)for(let k=0;k<seg;k++){const q=start+j*(seg+1)+k;this.tri(q,q+1,q+seg+1);this.tri(q+1,q+seg+2,q+seg+1);}}
  blade(a,b,width,c,{rows=7,curl=.04,fold=.008,shape='lance',thickness=0,edge=null}={}){
-  rows=Math.max(3,Math.round(rows*this.detail));const dx=b[0]-a[0],dz=b[2]-a[2],length=Math.hypot(dx,dz),sx=length>1e-6?-dz/length:1,sz=length>1e-6?dx/length:0,sides=thickness?[1,-1]:[1],starts=[];
+  const organStart=this.p.length/3;rows=Math.max(3,Math.round(rows*this.detail));const dx=b[0]-a[0],dz=b[2]-a[2],length=Math.hypot(dx,dz),sx=length>1e-6?-dz/length:1,sz=length>1e-6?dx/length:0,sides=thickness?[1,-1]:[1],starts=[];
   for(const back of sides){const start=this.p.length/3;starts.push(start);for(let j=0;j<=rows;j++){const t=j/rows,w=shape==='heart'?Math.sin(Math.PI*Math.pow(t,.64))**.6:shape==='grass'?Math.max(.015,(1-t)**.7):Math.sin(Math.PI*t)**.75,serration=shape==='fern'?1+.10*Math.sin(t*TAU*5):1;for(let k=0;k<5;k++){const across=(k-2)/2,q=across*width*w*serration,spine=Math.sin(t*Math.PI),height=a[1]+(b[1]-a[1])*t+spine*curl+fold*(1-Math.abs(across))*spine+back*thickness*Math.sin(t*Math.PI)*(1-across*across);const pigment=edge&&Math.abs(across)>.9?edge:mix(c,.92+.08*(1-Math.abs(across)));this.vertex([a[0]+dx*t+sx*q,height,a[2]+dz*t+sz*q],pigment,[k/4,t]);}}for(let j=0;j<rows;j++)for(let k=0;k<4;k++){const q=start+j*5+k;if(back===1){this.tri(q,q+1,q+5);this.tri(q+1,q+6,q+5);}else{this.tri(q,q+5,q+1);this.tri(q+1,q+5,q+6);}}}
   if(thickness)for(let j=0;j<rows;j++)for(const k of[0,4]){const a=starts[0]+j*5+k,b=starts[1]+j*5+k;this.tri(a,b,a+5);this.tri(a+5,b,b+5);}
+  const emergence=.16+(Math.abs(Math.sin(a[0]*17+a[1]*31+a[2]*23))*.34);for(let i=organStart;i<this.p.length/3;i++)this.organs.splice(i*4,4,a[0],a[1],a[2],emergence);
  }
  rootGroup(start,x,z){const bounds=[Infinity,Infinity,Infinity,-Infinity,-Infinity,-Infinity];for(let i=start*3;i<this.p.length;i+=3)for(let j=0;j<3;j++){bounds[j]=Math.min(bounds[j],this.p[i+j]);bounds[j+3]=Math.max(bounds[j+3],this.p[i+j]);}this.roots.push({start,count:this.p.length/3-start,x,z,bounds});}
- mesh(name,scene,material,updatable=false){const mesh=new B.Mesh(name,scene),data=new B.VertexData,indices=this.indices.flat(),normals=[];B.VertexData.ComputeNormals(this.p,indices,normals);Object.assign(data,{positions:this.p,indices,normals,colors:this.c,uvs:this.uv});data.applyToMesh(mesh,updatable);mesh.material=material;mesh.isPickable=false;mesh.subMeshes=[];let offset=0;for(let i=0;i<3;i++){const count=this.indices[i].length;if(count)new B.SubMesh(i,0,this.p.length/3,offset,count,mesh);offset+=count;}return mesh;}
+ mesh(name,scene,material,updatable=false){const mesh=new B.Mesh(name,scene),data=new B.VertexData,indices=this.indices.flat(),normals=[];B.VertexData.ComputeNormals(this.p,indices,normals);Object.assign(data,{positions:new Float32Array(this.p),indices,normals,colors:this.c,uvs:this.uv});data.applyToMesh(mesh,updatable);mesh.setVerticesData('verdantOrgan',this.organs,false,4);mesh.registerInstancedBuffer('verdantState',4);mesh.instancedBuffers.verdantState=new B.Vector4(1,0,1,0);mesh.material=material;mesh.isPickable=false;mesh.subMeshes=[];let offset=0;for(let i=0;i<3;i++){const count=this.indices[i].length;if(count)new B.SubMesh(i,0,this.p.length/3,offset,count,mesh);offset+=count;}return mesh;}
 }
 function build(type,variant,scene,quality='auto'){
- const detail=quality==='performance'?.5:quality==='cinematic'?1:window.innerWidth<900?.72:.86;const g=new MeshBuilder(detail),r=C.rng('botanical-v1 '+type+' '+variant),leaf=rgb(['#416331','#596b3c','#315d38'][variant]),young=rgb(['#81925a','#a0a364','#608653'][variant]),stem=rgb('#4e5e32'),bark=rgb('#a08b6e');
+ const detail=quality==='overview'?.26:quality==='medium'?.46:quality==='performance'?.38:quality==='cinematic'?1:window.innerWidth<900?.58:.72;const g=new MeshBuilder(detail),r=C.rng('botanical-v1 '+type+' '+variant),leaf=rgb(['#416331','#596b3c','#315d38'][variant]),young=rgb(['#81925a','#a0a364','#608653'][variant]),stem=rgb('#4e5e32'),bark=rgb('#a08b6e');
  if(type==='fern')for(let j=0;j<8;j++){
   const angle=j/8*TAU+r()*.35,L=.75+r()*.5,H=.50+r()*.45,point=t=>[Math.cos(angle)*L*t,.05+H*Math.sin(t*1.9)-.06*t*t,Math.sin(angle)*L*t];g.part=1;g.curve(Array.from({length:13},(_,i)=>point(i/12)),.012,.003,stem,6);g.part=0;
   for(let k=2;k<12;k++){const t=k/12,p=point(t),reach=(Math.sin(t*Math.PI)*.20+.025)*(1+.15*r());for(const side of[-1,1]){const a=angle+side*1.05,tip=[p[0]+Math.cos(a)*reach,p[1]+.02-reach*.08,p[2]+Math.sin(a)*reach];g.blade(p,tip,reach*.22,k%3?leaf:young,{shape:'fern',rows:9,curl:.02,fold:.009});}}
  }
  else if(type==='moss'){
   g.part=0;const center=g.vertex([0,.11,0],mix(leaf,.72),[.5,.5]),seg=32,rings=6;for(let j=1;j<=rings;j++)for(let k=0;k<=seg;k++){const a=k/seg*TAU,d=j/rings*.6,h=Math.max(.004,.10*(1-(d/.6)**2)+C.noise(Math.cos(a)*d*8,Math.sin(a)*d*8,17+variant)*.018);g.vertex([Math.cos(a)*d,h,Math.sin(a)*d],mix(leaf,.76),[.5+Math.cos(a)*d,.5+Math.sin(a)*d]);}for(let k=0;k<seg;k++)g.tri(center,1+k+1,1+k);for(let j=0;j<rings-1;j++)for(let k=0;k<seg;k++){const n=1+j*(seg+1)+k;g.tri(n,n+1,n+seg+1);g.tri(n+1,n+seg+2,n+seg+1);}
-  for(let j=0;j<Math.round(210*detail);j++){const a=r()*TAU,d=Math.sqrt(r())*.58,x=Math.cos(a)*d,z=Math.sin(a)*d,base=.10*(1-(d/.6)**2),h=.035+r()*.045;g.part=1;g.tube([x,base,z],[x+.005,base+h,z-.005],.002,.001,stem,4);g.part=0;for(let k=1;k<5;k++)for(const side of[-1,1]){const th=a+k*1.7+side,p=[x,base+h*k/5,z],L=.018+r()*.016;g.blade(p,[x+Math.cos(th)*L,p[1]+L*.3,z+Math.sin(th)*L],.007,k%2?leaf:young,{rows:3,curl:.003,fold:.002});}}
+  for(let j=0;j<Math.round(210*detail*detail);j++){const a=r()*TAU,d=Math.sqrt(r())*.58,x=Math.cos(a)*d,z=Math.sin(a)*d,base=.10*(1-(d/.6)**2),h=.035+r()*.045;g.part=1;g.tube([x,base,z],[x+.005,base+h,z-.005],.002,.001,stem,4);g.part=0;for(let k=1;k<5;k++)for(const side of[-1,1]){const th=a+k*1.7+side,p=[x,base+h*k/5,z],L=.018+r()*.016;g.blade(p,[x+Math.cos(th)*L,p[1]+L*.3,z+Math.sin(th)*L],.007,k%2?leaf:young,{rows:3,curl:.003,fold:.002});}}
  }
  else if(type==='clover')for(let j=0;j<11;j++){
   const rootStart=g.p.length/3,angle=r()*TAU,d=Math.sqrt(r())*.52,x=Math.cos(angle)*d,z=Math.sin(angle)*d,h=.18+r()*.25,p=[x+.035,h,z-.03];g.part=1;g.curve([[x,0,z],[x+.02,h*.6,z-.01],p],.005,.003,stem,5);g.part=0;for(let k=0;k<3;k++){const a=angle+k/3*TAU;g.blade(p,[p[0]+Math.cos(a)*.21,p[1]+.015,p[2]+Math.sin(a)*.21],.095,j%2?leaf:young,{shape:'heart',rows:10,curl:.016,fold:.008});}
@@ -51,12 +52,13 @@ function build(type,variant,scene,quality='auto'){
  }
  else if(type==='tree'){
   g.part=1;const path=Array.from({length:11},(_,i)=>{const t=i/10;return[Math.sin(t*8)*.075,t*2.15,Math.sin(t*5)*.05];});g.curve(path,.115,.012,bark,14);for(let k=0;k<7;k++){const a=k/7*TAU;g.curve([[0,.11,0],[Math.cos(a)*.17,.04,Math.sin(a)*.17],[Math.cos(a)*.36,.009,Math.sin(a)*.36]],.045,.004,bark,8);}
-  for(let j=0;j<11;j++){const a=j*2.4,h=.85+j*.11,L=.65*(1-j/16),base=[Math.sin(h/2.15*8)*.075,h,0],tip=[Math.cos(a)*L,h+.18,Math.sin(a)*L],mid=[tip[0]*.55,h+.06,tip[2]*.55];g.part=1;g.curve([base,mid,tip],.036*(1-j/18),.004,bark,8);
-   for(let k=0;k<7;k++){const t=.34+k*.1,center=[mid[0]+(tip[0]-mid[0])*t,mid[1]+(tip[1]-mid[1])*t,mid[2]+(tip[2]-mid[2])*t],th=a+(k%2?1:-1)*.8,end=[center[0]+Math.cos(th)*.22,center[1]+.08,center[2]+Math.sin(th)*.22];g.part=1;g.tube(center,end,.007,.002,bark,5);g.part=0;for(let n=0;n<Math.round(14*detail);n++){const phi=r()*TAU,rad=Math.sqrt(r())*.13,base=[end[0]+Math.cos(phi)*rad,end[1]+(r()-.5)*.08,end[2]+Math.sin(phi)*rad],L=.07+r()*.055,th=phi+(r()-.5)*.7;g.blade(base,[base[0]+Math.cos(th)*L,base[1]+.015+r()*.06,base[2]+Math.sin(th)*L],.012,n%4?leaf:young,{rows:3,curl:.009,fold:.004});}for(let q=0;q<Math.max(4,Math.round(9*detail));q++){const f=q/Math.max(4,Math.round(9*detail)),p=center.map((n,i)=>n+(end[i]-n)*f);for(const side of[-1,1]){const phi=th+side*1.2+q*.2,len=.06+r()*.04;g.blade(p,[p[0]+Math.cos(phi)*len,p[1]+.02,p[2]+Math.sin(phi)*len],.012,q%3?leaf:young,{rows:3,curl:.006,fold:.003});}}}
+  for(let j=0;j<11;j++){const branchStart=g.p.length/3;const a=j*2.4,h=.85+j*.11,L=.65*(1-j/16),base=[Math.sin(h/2.15*8)*.075,h,0],tip=[Math.cos(a)*L,h+.18,Math.sin(a)*L],mid=[tip[0]*.55,h+.06,tip[2]*.55];g.part=1;g.curve([base,mid,tip],.036*(1-j/18),.004,bark,8);
+   for(let k=0;k<Math.max(3,Math.round(7*detail));k++){const t=.34+k*.1,center=[mid[0]+(tip[0]-mid[0])*t,mid[1]+(tip[1]-mid[1])*t,mid[2]+(tip[2]-mid[2])*t],th=a+(k%2?1:-1)*.8,end=[center[0]+Math.cos(th)*.22,center[1]+.08,center[2]+Math.sin(th)*.22];g.part=1;g.tube(center,end,.007,.002,bark,5);g.part=0;for(let n=0;n<Math.round(14*detail);n++){const phi=r()*TAU,rad=Math.sqrt(r())*.13,base=[end[0]+Math.cos(phi)*rad,end[1]+(r()-.5)*.08,end[2]+Math.sin(phi)*rad],L=.07+r()*.055,th=phi+(r()-.5)*.7;g.blade(base,[base[0]+Math.cos(th)*L,base[1]+.015+r()*.06,base[2]+Math.sin(th)*L],.012,n%4?leaf:young,{rows:3,curl:.009,fold:.004});}for(let q=0;q<Math.max(4,Math.round(9*detail));q++){const f=q/Math.max(4,Math.round(9*detail)),p=center.map((n,i)=>n+(end[i]-n)*f);for(const side of[-1,1]){const phi=th+side*1.2+q*.2,len=.06+r()*.04;g.blade(p,[p[0]+Math.cos(phi)*len,p[1]+.02,p[2]+Math.sin(phi)*len],.012,q%3?leaf:young,{rows:3,curl:.006,fold:.003});}}}
+   g.branches.push({id:j,start:branchStart,count:g.p.length/3-branchStart,pivot:base});
   }
  }
  else if(type==='grass'){
-  const c=rgb(['#68744a','#a29668','#6b7d5d'][variant]);for(let j=0;j<48;j++){const rootStart=g.p.length/3,a=r()*TAU,d=r()*.28,h=.30+r()*.62,p=[Math.cos(a)*d,.005,Math.sin(a)*d];g.blade(p,[p[0]+Math.cos(a)*.25,h,p[2]+Math.sin(a)*.25],.013,c,{rows:9,shape:'grass',curl:h*.15,fold:.007});g.rootGroup(rootStart,p[0],p[2]);}
+  const c=rgb(['#68744a','#a29668','#6b7d5d'][variant]);for(let j=0;j<Math.max(14,Math.round(48*detail));j++){const rootStart=g.p.length/3,a=r()*TAU,d=r()*.28,h=.30+r()*.62,p=[Math.cos(a)*d,.005,Math.sin(a)*d];g.blade(p,[p[0]+Math.cos(a)*.25,h,p[2]+Math.sin(a)*.25],.013,c,{rows:9,shape:'grass',curl:h*.15,fold:.007});g.rootGroup(rootStart,p[0],p[2]);}
  }
  else if(type==='succulent'){
   const base=rgb(['#7d947c','#93a28a','#658879'][variant]),edge=rgb('#a58f83');for(let ring=0;ring<4;ring++)for(let j=0;j<9-ring;j++){const a=j/(9-ring)*TAU+ring*.43,L=.53-ring*.105;g.blade([0,.05+ring*.035,0],[Math.cos(a)*L,.18+ring*.14,Math.sin(a)*L],.17-ring*.018,base,{rows:13,curl:.07,fold:.018,thickness:.045,edge});}
@@ -75,7 +77,7 @@ function build(type,variant,scene,quality='auto'){
  }
  else if(type==='crystal')for(let j=0;j<6;j++){const a=r()*TAU,d=r()*.3,h=.28+r()*.55,R=.07+r()*.08,x=Math.cos(a)*d,z=Math.sin(a)*d;g.tube([x,0,z],[x,h,z],R,R,rgb('#c4c6b9'),6);g.tube([x,h,z],[x,h+R*1.8,z],R,0,rgb('#e4e4d7'),6);}
  else return null;
- const material=root.VerdantGraphics.botanicalMaterial(scene,type),mesh=g.mesh('botanical-'+type+'-'+variant,scene,material);mesh.isVisible=false;mesh.metadata={botanical:true,type,variant,roots:g.roots};return mesh;
+ const material=root.VerdantGraphics.botanicalMaterial(scene,type),mesh=g.mesh('botanical-'+type+'-'+variant,scene,material);mesh.isVisible=false;mesh.metadata={botanical:true,type,variant,roots:g.roots,branches:g.branches};return mesh;
 }
 function groundScatter(scene,state){
  const g=new MeshBuilder,r=C.rng(state.seed+' natural ground litter'),anchors=[],spec=C.vesselSpec(state);

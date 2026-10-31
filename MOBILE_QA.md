@@ -24,3 +24,9 @@ Automated checks cover logic, real model geometry, offline assets, and productio
 For each density, run 1× and 20× time for at least 60 seconds in Auto and Performance, then test Cinematic where practical. Use Care's live FPS display and browser profiling to separate animation/simulation work from GPU work. Record median frame rate, long stutters, responsiveness while orbiting/sculpting, and behavior after returning from the background. Include a ten-minute heat/battery observation for sustained play.
 
 Targets for tuning: prefer a steady 60 FPS where the device has headroom; keep a playable 30 FPS target on constrained phones. These are acceptance goals, not measured guarantees. Change detail/shadow/navigation budgets based on those measurements rather than inferring phone performance from NullEngine results.
+
+## Version 4 acceptance additions
+
+Use Files to test three named gardens, retained device settings, active-slot reopening, archive/export and quota recovery. Inspect individual bonsai branches and numeric transforms; confirm Undo keeps later growth/care/rewards. Verify native HTTPS Web Locks with two current tabs plus a legacy tab during rollout. Confirm each older document retains its release assets, bad/offline downloads leave the installed release usable and activation still needs a checkpoint.
+
+Compare Auto overview/close-up, Performance and Cinematic on identical fixtures. Inspect unfolding leaves, wet/steep soil, glass lip and pond reflection; verify offline color decode/JPEG fallback with no CDN. Export 1280/1920 PNGs in portrait/landscape and daylight/moonlight, checking color and absence of UI. Download performance diagnostics after warm-up and ten minutes. Check 30 fps Battery mode, paused Calm idle redraw, background/resume and forced context loss/restoration in a disposable fixture. These are manual acceptance tasks, not results inferred from the automated harness.

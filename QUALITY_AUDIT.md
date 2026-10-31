@@ -1,5 +1,11 @@
 # Verdant quality and save-preservation audit
 
+## Version 4 implementation, October 31, 2026
+
+The research plan now has software implementations for scoped preferences/history, editing ownership, verified/pinned releases, species clearance, independent view lighting, detail/instancing, compressed color maps, battery/idle drawing, local leaf development/motion, branch pruning, wet/sloped soil, Cinematic reflection, keyboard editing, biome recipes, named slots and PNG export. See [the implementation record](docs/IMPLEMENTATION_4.md) for the exact scope and data semantics.
+
+The dense 220-plant phone fixture references 1,131,924 plant triangles versus 2,889,300 in the audit. Twenty-seven production WebGL2 shader pairs compile/link with Mesa GLES software rendering. These establish geometry and shader validity; physical GPU appearance, native lifecycle, sustained device performance and accessibility acceptance remain explicitly unverified.
+
 ## Desktop workspace and settings persistence (October 29, 2026)
 
 The desktop pass replaces crowded floating controls with a bounded build panel, a centered editing dock, and a right rail shared by garden status, grouped settings, journey, and inspection. The inventory scrolls independently and collapses to a narrow rail. Desktop settings separate Garden, Display, and Files; their content scrolls between fixed section/save controls. Header labels expose Settings and Terrarium. Camera bounds include the dock, hint, and inspector. Desktop keyboard shortcuts continue after button clicks, the ninth plant has a shortcut, and Observe clicks inspect existing plants.

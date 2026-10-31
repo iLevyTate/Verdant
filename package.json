@@ -1,6 +1,6 @@
 {
   "name": "verdant-terrarium",
-  "version": "3.0.0",
+  "version": "4.0.0",
   "private": true,
   "description": "Mobile-first botanical terrarium game with detailed plants, sculptable terrain, and rapid growth",
   "dependencies": {
@@ -8,11 +8,12 @@
   },
   "scripts": {
     "start": "node scripts/serve.mjs",
-    "check": "node --check core.js && node --check world.js && node --check game.js && node --check creatures.js && node --check graphics.js && node --check botany.js && node --check pwa.js && node --check sw.js && node --check saves.js && node --check workspace.js && node scripts/refresh-offline.mjs --check",
-    "test": "node tests/core.test.cjs && node tests/gameplay.test.cjs && node tests/wildlife.test.cjs && node tests/care.test.cjs && node tests/pwa.test.cjs && node tests/bunny.test.cjs && node tests/updates.test.cjs && node tests/animals.test.cjs && node tests/saves.test.cjs && node tests/elements.test.cjs && node tests/graphics.test.cjs && node tests/bonsai.test.cjs && node tests/polish.test.cjs && node tests/mobile-ui.test.cjs && node tests/botanical.test.cjs && node tests/rendering.test.cjs && node tests/workspace.test.cjs",
-    "test:scene": "node tests/scene.test.cjs && node tests/refinements.test.cjs && node tests/guru.test.cjs && node tests/vessels.test.cjs",
+    "check": "node --check core.js && node --check world.js && node --check game.js && node --check creatures.js && node --check graphics.js && node --check botany.js && node --check pwa.js && node --check sw.js && node --check saves.js && node --check workspace.js && node --check dynamics.js && node scripts/refresh-offline.mjs --check",
+    "test": "node tests/core.test.cjs && node tests/gameplay.test.cjs && node tests/wildlife.test.cjs && node tests/care.test.cjs && node tests/pwa.test.cjs && node tests/bunny.test.cjs && node tests/updates.test.cjs && node tests/animals.test.cjs && node tests/saves.test.cjs && node tests/elements.test.cjs && node tests/graphics.test.cjs && node tests/bonsai.test.cjs && node tests/polish.test.cjs && node tests/mobile-ui.test.cjs && node tests/botanical.test.cjs && node tests/rendering.test.cjs && node tests/workspace.test.cjs && node tests/textures.test.cjs && node tests/releases.test.cjs",
+    "test:scene": "node tests/scene.test.cjs && node tests/refinements.test.cjs && node tests/guru.test.cjs && node tests/vessels.test.cjs && node tests/detail.test.cjs",
     "release:cache": "node scripts/refresh-offline.mjs",
-    "bench:scene": "node scripts/benchmark.cjs"
+    "bench:scene": "node scripts/benchmark.cjs",
+    "shaders:export": "node scripts/export-shaders.cjs"
   },
   "devDependencies": {
     "@napi-rs/canvas": "0.1.100",

@@ -34,3 +34,7 @@ The screenshot below is the actual desktop settings DOM after that reload. The 3
 ## Remaining device acceptance
 
 Check a real WebGL desktop browser at normal and increased browser zoom, including keyboard-only use, wheel scrolling inside the building/settings panels, inspector and bonsai actions, photo mode, and graphics switching. Verify the rendered garden remains framed between panels. Physical GPU appearance, FPS, heat, and native installation/update dialogs remain separate acceptance work in `MOBILE_QA.md`.
+
+## Version 4 follow-up
+
+Production DOM tests now cover named save/open/reload, preferences across garden replacement, coordinate placement, specimen search and numeric transform/Undo. Native browser UI checks saved “Fern study” at 1280 × 800 and inspected the confirmed slot at 390 × 844 using an unpublished NullEngine/readiness fixture. The labelled [phone confirmation](docs/qa/gardens-v4.jpg) excludes GPU rendering. True 200% zoom, assistive technology, native Web Locks/service-worker lifecycle and physical graphics remain device acceptance.

@@ -13,10 +13,10 @@
     m.set(key,p);return p;
   }
   function configure(world,quality='auto'){
-    const engine=world.engine,s=world.scene,headless=engine instanceof B.NullEngine;
+    const engine=world.engine,s=world.scene,headless=engine instanceof B.NullEngine;s.metadata??={};s.metadata.verdantSurfaceDetail=quality!=='performance';world.renderDirty=true;
     if(world.pipeline){world.pipeline.dispose();world.pipeline=null;}if(world.ambientOcclusion){world.ambientOcclusion.dispose();world.ambientOcclusion=null;}
-    world.graphicsMode=quality;world.renderTier=quality==='performance'?'performance':quality==='cinematic'?'cinematic':'balanced';
-    if(headless)return;
+    world.setupReflections?.(quality);world.graphicsMode=quality;world.renderTier=quality==='performance'?'performance':quality==='cinematic'?'cinematic':'balanced';
+    if(headless)return;if(B.KhronosTextureContainer2&&document.baseURI){const base=new URL('vendor/ktx2/',document.baseURI);Object.assign(B.KhronosTextureContainer2.URLConfig,{jsDecoderModule:new URL('decoder.js',base).href,jsMSCTranscoder:new URL('msc_basis_transcoder.js',base).href,wasmMSCTranscoder:new URL('msc_basis_transcoder.wasm',base).href});}if(!world.sceneInstrumentation&&B.SceneInstrumentation){world.sceneInstrumentation=new B.SceneInstrumentation(s);world.sceneInstrumentation.captureFrameTime=true;world.engineInstrumentation=new B.EngineInstrumentation(engine);world.engineInstrumentation.captureGPUFrameTime=!!engine.getCaps().timerQuery;world.engineInstrumentation.captureShaderCompilationTime=true;}
     const phone=window.innerWidth<900,pixelRatio=window.devicePixelRatio||1,cap=quality==='performance'?1:quality==='cinematic'?2:phone?1.55:1.8;world.baseHardwareScale=1/Math.max(1,Math.min(pixelRatio,cap));world.performanceState=null;engine.setHardwareScalingLevel(world.baseHardwareScale);
     if(!s.environmentTexture){const env=B.CubeTexture.CreateFromPrefilteredData('assets/studio.env',s);env.name='bundled studio light';env.rotationY=.8;s.environmentTexture=env;s.environmentIntensity=.65;}
     s.imageProcessingConfiguration.toneMappingEnabled=true;s.imageProcessingConfiguration.toneMappingType=B.ImageProcessingConfiguration.TONEMAPPING_ACES;s.imageProcessingConfiguration.exposure=1.02;s.imageProcessingConfiguration.contrast=1.12;
@@ -28,9 +28,9 @@
     if(world.state.graphics!=='auto'||world.engine instanceof B.NullEngine||!Number.isFinite(dt)||dt<=0||dt>.25||document.hidden)return;
     const p=world.performanceState||(world.performanceState={average:1/60,warmup:0,slow:0,fast:0}),engine=world.engine,base=world.baseHardwareScale||1;
     p.average+=(dt-p.average)*.07;p.warmup+=dt;if(p.warmup<2)return;
-    p.slow=p.average>.034?p.slow+dt:0;p.fast=p.average<.020?p.fast+dt:0;
+    p.slow=p.average>(world.state.batteryMode?.036:.022)?p.slow+dt:0;p.fast=p.average<.020?p.fast+dt:0;
     const current=engine.getHardwareScalingLevel();
-    if(p.slow>=3){const next=Math.min(Math.max(base,1.35),current*1.12);if(next>current+.005)engine.setHardwareScalingLevel(next);p.slow=p.fast=0;}
+    if(p.slow>=3){if(world.frameStats?.animation>9){world.detailBudget=Math.max(.55,(world.detailBudget||1)*.85);world.refreshDetail?.();}const next=Math.min(Math.max(base,1.35),current*1.12);if(next>current+.005)engine.setHardwareScalingLevel(next);p.slow=p.fast=0;}
     else if(p.fast>=10){const next=Math.max(base,current/1.08);if(next<current-.005)engine.setHardwareScalingLevel(next);p.slow=p.fast=0;}
   }
   const canvases={};
@@ -51,9 +51,9 @@
     const texture=new B.DynamicTexture(key,canvases[key],scene,true);texture.gammaSpace=!normal;texture.update(false);m.set(key,texture);return texture;
   }
   function scannedTexture(scene,asset,kind,scale=1){
-    const key=asset+kind+scale,m=materials(scene);if(m.has(key))return m.get(key);const file='assets/textures/'+asset+'_'+kind+'.jpg';let texture;
+    const key=asset+kind+scale,m=materials(scene);if(m.has(key))return m.get(key);const fallback='assets/textures/'+asset+'_'+kind+'.jpg',caps=scene.getEngine().getCaps(),compressed=kind==='diff'&&!!(caps.astc||caps.bptc||caps.etc2),file=compressed?fallback.replace('.jpg','.ktx2'):fallback;let texture;
     if(scene.getEngine() instanceof B.NullEngine){texture=B.RawTexture.CreateRGBATexture(new Uint8Array([128,128,255,255]),1,1,scene);texture.metadata={offlineSource:file};}
-    else texture=new B.Texture(file,scene,false,false,B.Texture.TRILINEAR_SAMPLINGMODE);
+    else{let retried=false;texture=new B.Texture(file,scene,false,false,B.Texture.TRILINEAR_SAMPLINGMODE,null,()=>{if(file!==fallback&&!retried){retried=true;texture.updateURL(fallback);}});}
     texture.name=file;texture.gammaSpace=kind==='diff';texture.uScale=texture.vScale=scale;texture.anisotropicFilteringLevel=8;m.set(key,texture);return texture;
   }
   function scannedMaterial(scene,name,asset,scale=1){
@@ -67,9 +67,10 @@
     const structure=woody?scannedMaterial(scene,'weathered bark','bark_brown_01',1):detailMaterial(scene,type+' stem','#ffffff',.76),detail=detailMaterial(scene,type+' details','#ffffff',type==='flower'?.62:.78);
     if(type==='flower'){detail.subSurface.isTranslucencyEnabled=true;detail.subSurface.translucencyIntensity=.22;detail.backFaceCulling=false;detail.twoSidedLighting=true;}
     if(type==='log')detail.albedoTexture=surfaceTexture(scene,'wood');
+    if(root.VerdantDynamics&&!['rock','crystal','log'].includes(type)){new root.VerdantDynamics.PlantSurface(leaf,type);if(!woody)new root.VerdantDynamics.PlantSurface(structure,type);if(['flower','mushroom'].includes(type))new root.VerdantDynamics.PlantSurface(detail,type);}
     const multi=new B.MultiMaterial(key,scene);multi.subMaterials=[type==='rock'?scannedMaterial(scene,'weathered mineral','rock_01',1):leaf,structure,detail];if(type==='crystal'){leaf.roughness=.17;leaf.indexOfRefraction=1.48;leaf.clearCoat.isEnabled=true;leaf.clearCoat.intensity=.8;}m.set(key,multi);return multi;
   }
-  function terrainMaterial(scene,biome){const p=scannedMaterial(scene,'living '+biome+' soil',biome==='desert'?'sand_01':'forest_ground_04',4);p.albedoColor=col(biome==='desert'?'#f0e5cf':biome==='tropical'?'#b1b4a1':'#c4c2ac');p.roughness=biome==='tropical'?.76:.96;return p;}
+  function terrainMaterial(scene,biome){const p=scannedMaterial(scene,'living '+biome+' soil',biome==='desert'?'sand_01':'forest_ground_04',4);p.albedoColor=col(biome==='desert'?'#f0e5cf':biome==='tropical'?'#b1b4a1':'#c4c2ac');p.roughness=biome==='tropical'?.76:.96;if(root.VerdantDynamics&&!p.verdantSoil)p.verdantSoil=new root.VerdantDynamics.SoilSurface(p,scannedTexture(scene,'rock_01','diff',1));return p;}
   function glass(scene){const p=new B.PBRMaterial('polished clear glass',scene);p.albedoColor=col('#e3eee4');p.metallic=0;p.roughness=.035;p.alpha=.065;p.indexOfRefraction=1.45;p.backFaceCulling=false;p.twoSidedLighting=true;p.disableDepthWrite=true;p.transparencyMode=B.PBRMaterial.PBRMATERIAL_ALPHABLEND;p.clearCoat.isEnabled=true;p.clearCoat.intensity=1;p.clearCoat.roughness=.025;p.environmentIntensity=.8;return p;}
   root.VerdantGraphics={configure,creatureMaterial,detailMaterial,glass,adapt,botanicalMaterial,terrainMaterial,scannedMaterial};
 })(window);

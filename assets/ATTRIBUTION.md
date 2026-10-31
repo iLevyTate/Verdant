@@ -23,3 +23,9 @@ The botanical release bundles the 1K color, OpenGL normal, and AO/roughness/meta
 Files are in `assets/textures/`. The original 1K JPG maps were recompressed for the mobile/offline package; geometry and source UV layouts are original Verdant code. The assets are dedicated to the public domain under CC0 1.0: https://creativecommons.org/publicdomain/zero/1.0/ . Poly Haven's asset license is documented at https://polyhaven.com/license . This license is separate from Babylon.js and the pre-existing studio environment.
 
 Fine leaf/cuticle/wood-ring textures are generated deterministically by Verdant at runtime. No image-generation service or external texture request is used while playing.
+
+## Compressed color derivatives and offline decoder
+
+The four `_diff.ktx2` files derive from the same CC0 maps above, encoded as 1K ETC1S with eleven mip levels using Basis Universal v1.15 (`basisu@1.16.3`, development tool only): `basisu -ktx2 -q 200 -comp_level 2 -mipmap -file SOURCE.jpg -output_file OUTPUT.ktx2`. Normal/ARM maps retain JPEGs; original color JPEGs provide fallback.
+
+`vendor/ktx2/decoder.js` is the official Babylon.js KTX2 decoder 8.32.0; the bundled MSC Basis JavaScript/WASM comes from the matching official `@babylonjs/ktx2decoder@8.32.0` package. Babylon/codec notices are retained as `vendor/ktx2/BABYLON-LICENSE.md` and `vendor/ktx2/license.md`. No codec CDN is required while playing.
