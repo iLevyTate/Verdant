@@ -2,18 +2,18 @@
 (function(root){
   'use strict';
   const KEY='verdant-world-v1',BACKUP=KEY+'-backup',CHECKPOINT=KEY+'-before-update',RECOVERY=KEY+'-recovery',HISTORY=KEY+'-history';
-  function create(getStorage,validate){
+  function create(getStorage,validate,canWrite=()=>true){
     let expected=null,loaded=false,blocked=true;
     const storage=()=>typeof getStorage==='function'?getStorage():getStorage;
     const parse=raw=>validate(JSON.parse(raw));
     const failure=(code,error)=>({ok:false,code,error});
-    function write(store,key,data){store.setItem(key,data);if(store.getItem(key)!==data)throw Error('Browser storage did not retain this write.');}
+    function write(store,key,data){try{store.setItem(key,data);}catch(error){if(error.name!=='QuotaExceededError'&&error.code!==22)throw error;const rows=history();while(rows.length){rows.pop();store.setItem(HISTORY,JSON.stringify(rows));try{store.setItem(key,data);break;}catch(next){if(!rows.length)throw next;}}}if(store.getItem(key)!==data)throw Error('Browser storage did not retain this write.');}
     function history(){try{const rows=JSON.parse(storage().getItem(HISTORY)||'[]');return Array.isArray(rows)?rows.filter(row=>row&&typeof row.id==='string'&&typeof row.data==='string'&&Number.isFinite(row.at)):[];}catch(error){return[];}}
     function remember(data,label,force=false){
       try{
         parse(data);const now=Date.now(),rows=history();if(rows[0]?.data===data||!force&&rows[0]&&now-rows[0].at<300000)return true;
         rows.unshift({id:now+'-'+Math.random().toString(36).slice(2,9),at:now,label:String(label).slice(0,60),data});
-        let bytes=0;const kept=[];for(const row of rows)if(kept.length<5&&bytes+row.data.length<=768000){kept.push(row);bytes+=row.data.length;}if(!kept.some(row=>row.data===data))return false;write(storage(),HISTORY,JSON.stringify(kept));return true;
+        let bytes=0;const kept=[];for(const row of rows)if(kept.length<5&&bytes+row.data.length*2<=1536000){kept.push(row);bytes+=row.data.length*2;}if(!kept.some(row=>row.data===data))return false;write(storage(),HISTORY,JSON.stringify(kept));return true;
       }catch(error){return false;}
     }
     function snapshots(){
@@ -32,7 +32,7 @@
     }
     function hasBackup(){return snapshots().length>0;}
     function save(state,{checkpoint=false,manual=false}={}){
-      if(!loaded||blocked)return failure('recovery-required');
+      if(!canWrite())return failure('other-tab');if(!loaded||blocked)return failure('recovery-required');
       try{
         const data=JSON.stringify(state);parse(data);const store=storage(),current=store.getItem(KEY);
         if(current!==expected)return failure('conflict');
@@ -40,14 +40,14 @@
         // A dedicated checkpoint survives subsequent autosaves in the new release.
         if(checkpoint)write(store,CHECKPOINT,data);
         else if(current!==null&&store.getItem(CHECKPOINT)===null)write(store,CHECKPOINT,current);
-        store.setItem(KEY,data);expected=data;const confirmed=store.getItem(KEY);if(confirmed!==data){expected=current;return failure('write-not-confirmed');}const historySaved=remember(checkpoint||manual?data:current||data,checkpoint?'Before app update':manual?'Manual save':'Automatic restore point',checkpoint||manual);return{ok:true,historySaved};
+        write(store,KEY,data);expected=data;const historySaved=remember(checkpoint||manual?data:current||data,checkpoint?'Before app update':manual?'Manual save':'Automatic restore point',checkpoint||manual);return{ok:true,historySaved};
       }catch(error){return failure('storage-failed',error);}
     }
     function raw(){try{return storage().getItem(KEY)??storage().getItem(RECOVERY)??storage().getItem(BACKUP)??storage().getItem(CHECKPOINT);}catch(error){return null;}}
-    function checkpointOriginal(){
+    function checkpointOriginal(){if(!canWrite())return failure('other-tab');
       try{const store=storage(),current=store.getItem(KEY);if(current===null)return failure('no-world');if(current!==expected)return failure('conflict');write(store,CHECKPOINT,current);return{ok:true};}catch(error){return failure('storage-failed',error);}
     }
-    function restoreFromRaw(data){
+    function restoreFromRaw(data){if(!canWrite())return failure('other-tab');
       try{
         const state=parse(data),store=storage(),current=store.getItem(KEY);
         if(current!==expected)return failure('conflict');
@@ -62,7 +62,7 @@
         const point=history().find(row=>{try{parse(row.data);return true;}catch(error){return false;}});return point?restoreFromRaw(point.data):failure('no-backup');
       }catch(error){return failure('storage-failed',error);}
     }
-    function createSnapshot(state){if(!loaded||blocked)return failure('recovery-required');try{if(storage().getItem(KEY)!==expected)return failure('conflict');const data=JSON.stringify(state);parse(data);return remember(data,'Saved restore point',true)?{ok:true}:failure('storage-failed');}catch(error){return failure('storage-failed',error);}}
+    function createSnapshot(state){if(!canWrite())return failure('other-tab');if(!loaded||blocked)return failure('recovery-required');try{if(storage().getItem(KEY)!==expected)return failure('conflict');const data=JSON.stringify(state);parse(data);return remember(data,'Saved restore point',true)?{ok:true}:failure('storage-failed');}catch(error){return failure('storage-failed',error);}}
     function restoreSnapshot(id){try{const data=[BACKUP,CHECKPOINT,RECOVERY].includes(id)?storage().getItem(id):history().find(row=>row.id===id)?.data;return data?restoreFromRaw(data):failure('no-backup');}catch(error){return failure('storage-failed',error);}}
     return{load,save,raw,restoreBackup,restoreFromRaw,checkpointOriginal,hasBackup,snapshots,createSnapshot,restoreSnapshot};
   }

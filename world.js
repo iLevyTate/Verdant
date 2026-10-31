@@ -186,7 +186,7 @@ void main(){vec2 p=vWorld.xz;vec4 heightSample=texture2D(terrainHeights,p/terrai
    for(const tilt of['fern','flower','grass','clover'].includes(e.type)?[-.05,.05]:[0])if(vesselFit(envelope,e.x,y,e.z,e.scale*1.18,e.scale*1.18,e.rotation||0,tilt,this.state)<1)return{ok:false,reason:'Leave room for this plant’s mature canopy inside the glass. Move inward or choose a smaller size.'};
   }return this.canPlaceObject(e);
  }
- canPlaceObject(e){
+ canPlaceObject(e){const room=C.spacing(e,this.state,e.id);if(!room.ok)return room;
   const variants=e.variant===undefined?[0,1,2]:[e.variant],growth=C.ELEMENTS[e.type].category==='plants'?1.18:1,scale=e.scale*growth,y=C.heightAt(e.x,e.z,this.state),matrix=B.Matrix.Compose(new V(scale,scale,scale),B.Quaternion.RotationYawPitchRoll(e.rotation||0,0,0),new V(e.x,y,e.z));
   for(const variant of variants){const box=this.template(e.type,variant).getBoundingInfo().boundingBox,points=box.vectors.map(p=>V.TransformCoordinates(p,matrix)),min=new V(Infinity,Infinity,Infinity),max=new V(-Infinity,-Infinity,-Infinity);for(const p of points){min.minimizeInPlace(p);max.maximizeInPlace(p);}
     if(C.ELEMENTS[e.type].decoration){const spec=C.vesselSpec(this.state);for(const p of points)if(p.y>spec.top-.06||Math.hypot(p.x/spec.x,p.z/spec.z)>C.vesselRadius(p.y,this.state)-.045/Math.min(spec.x,spec.z))return{ok:false,reason:'Leave room for the whole object inside the glass. Move inward or choose a smaller size.'};}

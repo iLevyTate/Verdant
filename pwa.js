@@ -1,5 +1,7 @@
 (function(){
   'use strict';
+  const APP_RELEASE='release-c072a2d6c24d868d';
+  let canEdit=!(typeof MessageChannel!=='undefined'&&navigator.serviceWorker?.controller?.postMessage),blockReason='';
   let promptEvent,registration,applyingUpdate=false,offlineReady=false,deferredWorker,needsReload=false,lastCheck=0,checking=false,checkMessage='',reloading=false;
   let hadController=!!navigator.serviceWorker?.controller;
   const $=s=>document.querySelector(s),all=s=>document.querySelectorAll(s);
@@ -16,6 +18,7 @@
     all('[data-update-status]').forEach(e=>e.textContent=applyingUpdate?'Saving your world and applying the update…':ready?'An update is ready. Update now or keep playing.':checkMessage||'Updates are checked automatically. You can also check here.');
     document.body?.classList?.toggle('has-update',ready);
   }
+  async function refreshClients(){const controller=navigator.serviceWorker?.controller;if(typeof MessageChannel==='undefined'||!controller?.postMessage){canEdit=true;return true;}try{const answer=await new Promise((resolve,reject)=>{const channel=new MessageChannel(),timer=window.setTimeout(()=>{channel.port1.close();reject(Error('timeout'));},4000);channel.port1.onmessage=e=>{window.clearTimeout(timer);channel.port1.close();resolve(e.data);};controller.postMessage({type:'CLIENT_HELLO',protocol:4,release:APP_RELEASE},[channel.port2]);});canEdit=answer.canEdit===true;offlineReady=answer.offlineReady===true;blockReason=canEdit?'':'An earlier Verdant tab is still open. Export its changes, then close or update it.';}catch{canEdit=false;blockReason='Release safety could not be checked. Reconnect and retry.';}window.dispatchEvent(new Event('verdant:release-status'));status();return canEdit;}
   function offerUpdate(force=false){
     status();if(!updateReady()||applyingUpdate||document.hidden||!force&&deferredWorker===(registration?.waiting||'reload'))return;
     const dialog=$('#updateDialog');if(!dialog||dialog.open||!force&&$('dialog[open]'))return;dialog.showModal();
@@ -58,7 +61,7 @@
     try{
       registration=await navigator.serviceWorker.register('./sw.js',{scope:'./',updateViaCache:'none'});lastCheck=Date.now();
       registration.addEventListener('updatefound',()=>observeWorker(registration.installing));observeWorker(registration.installing);offerUpdate();
-      const ready=await navigator.serviceWorker.ready;offlineReady=!!ready.active;offerUpdate();
+      const ready=await navigator.serviceWorker.ready;if(typeof MessageChannel==='undefined'||!ready.active?.postMessage)offlineReady=!!ready.active;await refreshClients();offerUpdate();
     }catch(problem){checkMessage='Update setup is unavailable. Reopen the app online to retry.';status();}
   }
   window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();promptEvent=event;status();});
@@ -67,7 +70,7 @@
   window.addEventListener('focus',()=>checkForUpdates());
   document.addEventListener('visibilitychange',()=>{if(!document.hidden){checkForUpdates(true);offerUpdate();}});
   document.addEventListener('close',()=>offerUpdate(),true);
-  navigator.serviceWorker?.addEventListener('controllerchange',()=>{if(applyingUpdate){reloadSaved();return;}if(hadController){needsReload=true;deferredWorker=undefined;offerUpdate();}else{hadController=true;status();}});
+  navigator.serviceWorker?.addEventListener('controllerchange',()=>{refreshClients();if(applyingUpdate){reloadSaved();return;}if(hadController){needsReload=true;deferredWorker=undefined;offerUpdate();}else{hadController=true;status();}});
   document.addEventListener('click',event=>{
     if(event.target.closest('[data-get-app]')){status();const dialog=$('#installDialog');if(dialog&&!dialog.open)dialog.showModal();}
     if(event.target.closest('[data-install-app]'))install();
@@ -78,6 +81,9 @@
     if(event.target.closest('[data-close-install]'))$('#installDialog')?.close();
   });
   $('#updateDialog')?.addEventListener('cancel',event=>{if(applyingUpdate){event.preventDefault();return;}deferredWorker=registration?.waiting||'reload';});
-  window.VerdantPWA={install,refresh:status,checkForUpdates};window.addEventListener('load',register);document.addEventListener('DOMContentLoaded',status);
+  window.VerdantPWA={install,refresh:status,checkForUpdates,refreshClients,release:APP_RELEASE,get canEdit(){return canEdit;},get blockReason(){return blockReason;}};window.addEventListener('load',register);document.addEventListener('DOMContentLoaded',status);
+  navigator.serviceWorker?.addEventListener('message',event=>{if(event.data?.type==='REQUEST_CLIENT_RELEASE')refreshClients();if(event.data?.type==='RELEASE_STATUS'&&event.data.canEdit===true){canEdit=true;blockReason='';window.dispatchEvent(new Event('verdant:release-status'));}});
   window.setInterval(()=>checkForUpdates(),5*60*1000);
+  window.setInterval(()=>{if(!document.hidden)refreshClients();},15000);
+
 })();
