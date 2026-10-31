@@ -92,6 +92,8 @@ The procedural terrain and growth simulation runs while the page is visible. Gar
 
 ## Development and checks
 
+See [improvement research and next-work priorities](docs/IMPROVEMENT_RESEARCH.md) for the October 30, 2026 review of settings scope, concurrent saves, release consistency, geometry budgets, botanical realism, and remaining device checks. That report distinguishes current behavior from proposed changes.
+
 ```
 npm ci
 npm run release:cache
