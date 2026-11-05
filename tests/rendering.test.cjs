@@ -80,13 +80,22 @@ for(let cycle=0;cycle<2;cycle++) {
   }
   if(!cycle) warm=resources(); else assert.deepEqual(resources(),warm,'quality changes must release superseded scene resources');
 }
-// Water and the clear background must cross the display gamma boundary once.
+// Water crosses the display gamma boundary once. The clear background is
+// solved through exposure, tone mapping, gamma and contrast, so the renderer
+// shows exactly the color the page uses and the studio has no visible box.
 // This also exercises changing the pipeline without changing time or weather.
+const G=window.VerdantGraphics,expected=B.Color3.FromHexString('#ecede4');
 for(const post of [false,true,false]) {
-  world.scene.imageProcessingConfiguration.applyByPostProcess=post; world.animate();
+  const config=world.scene.imageProcessingConfiguration;config.applyByPostProcess=post; world.animate();
   assert.equal(world.waterMaterial._floats.outputGamma,post?0:1);
-  const expected=B.Color3.FromHexString('#e6e7df');
-  assert(Math.abs(world.scene.clearColor.r-(post?expected.toLinearSpace().r:expected.r))<1e-6);
+  const clear=world.scene.clearColor,shown=post?G.displayed(config,[clear.r,clear.g,clear.b]):[clear.r,clear.g,clear.b],stage=B.Color3.FromHexString(world.stageDisplay);
+  [stage.r,stage.g,stage.b].forEach((v,i)=>assert(Math.abs(shown[i]-v)<1.5/255,'the page and renderer must show the same studio color'));
+  if(!post)assert.equal(world.stageDisplay,expected.toHexString());
+  else{
+    // With a floating-point scene target the ivory itself is reachable.
+    const hdr=G.stageColor({scene:world.scene,engine:{getCaps:()=>({textureHalfFloatRender:true})},pipeline:{}},expected),round=G.displayed(config,[hdr.scene.r,hdr.scene.g,hdr.scene.b]);
+    assert.equal(hdr.display.toHexString(),expected.toHexString());[expected.r,expected.g,expected.b].forEach((v,i)=>assert(Math.abs(round[i]-v)<1e-3,'HDR stage color must round-trip'));
+  }
 }
 const dim=world.sun.intensity; state.sun=.95; world.animate();
 assert(world.sun.intensity>dim,'sunlight changes must refresh the renderer even under locked daylight');

@@ -8,11 +8,22 @@ A mobile-first, procedural 3D terrarium game. Build a planted landscape with soi
 
 **Plain HTML, CSS, and JavaScript. No Jekyll, Ruby, framework, compilation, or backend is required to host the game.** The Babylon.js engine and environment lighting are bundled locally, and the interface uses device fonts with no external font requests.
 
+## Living terrarium polish
+
+- **Seamless studio:** the 3D background is solved through the renderer's exposure, tone mapping, gamma and contrast, so it displays exactly the page color. The gray box behind the terrarium is gone, and at night the page darkens with the scene.
+- **A real cross-section:** drainage stones packed against the glass (river stones in the woodland, clay pebbles in the rainforest, pea gravel in the desert), a thin charcoal layer, then substrate with perlite and bark. The glass gains a faint green edge at grazing angles.
+- **Fuller plants:** junipers carry flat foliage pads that stay green at a distance, and moss grows as lumpy, fuzzy cushions with lighter new growth on the crests.
+- **Care you can see:** plants wilt and yellow when their local soil drops below what their species prefers, and recover within seconds of misting. Misting beads condensation on the glass. Venting sends a gust through the foliage and clears it. These effects read the simulation and never change saved data.
+- **Touch:** hovering over or touching plants bends them aside on a soft spring, inspecting or harvesting a plant makes it sway, and new plantings emerge from the soil. With reduced motion, wilting appears without animation and these movements are off.
+- **First visit:** the first offline download no longer opens an "Update Verdant?" prompt.
+
+Checked in Chromium with WebGL2 on software rendering (SwiftShader), including day, night, all three biomes, Cinematic and Performance, and a phone layout. Appearance on physical GPUs still needs device acceptance. The new `tests/living.test.cjs` suite covers wilting, recovery, condensation, touch springs, reduced motion and emergence.
+
 ## Version 4 refinements
 
 Device preferences now follow you between gardens. Named slots, storage health, specimen search, coordinate placement, numeric transforms, individual bonsai branches, camera buttons, battery mode and scene PNG export are available in Settings/inspection. Scoped Undo keeps later growth and progress. One editing tab owns saves where Web Locks is available; updates verify offline bytes and preserve assets used by older tabs.
 
-Plants use projected-size detail and local leaf motion. Soil responds to slope and wetness, Cinematic adds pond reflections, and four compressed color maps have offline decoders plus JPEG fallback. The dense phone fixture references 1,131,924 plant triangles versus the audit's 2,889,300. This measures geometry, not GPU speed. Existing gardens and archived animals remain preserved.
+Plants use projected-size detail and local leaf motion. Soil responds to slope and wetness, Cinematic adds pond reflections, and four compressed color maps have offline decoders plus JPEG fallback. The dense phone fixture references 1,162,036 plant triangles versus the audit's 2,889,300 (1,131,924 before juniper foliage pads were added). This measures geometry, not GPU speed. Existing gardens and archived animals remain preserved.
 
 See the [complete implementation record](docs/IMPLEMENTATION_4.md) for all fourteen recommendations, controls, data semantics and verification limits. Babylon.js remains the engine; physical-device graphics and native lifecycle/accessibility acceptance are still required.
 
