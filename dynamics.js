@@ -5,18 +5,38 @@ class PlantSurface extends B.MaterialPluginBase{
  isCompatible(language){return language===B.ShaderLanguage.GLSL;}
  prepareDefines(d,s,m){d.VERDANT_PLANT=m.isVerticesDataPresent('verdantOrgan');}
  getAttributes(a){a.push('verdantOrgan');}
- getUniforms(){return{ubo:[{name:'verdantMotion',size:4,type:'vec4'},{name:'verdantTime',size:1,type:'float'}],vertex:'uniform vec4 verdantMotion; uniform float verdantTime;'};}
- bindForSubMesh(buffer,scene,engine,sub){const data=sub.getRenderingMesh().metadata?.verdantState||[1,0,1],motion=scene.metadata?.verdantMotion||{time:0,wind:0},still=['moss','succulent','cactus','mushroom'].includes(this.type);buffer.updateFloat4('verdantMotion',data[0],data[1],still?0:motion.wind,Math.max(.1,data[2]));buffer.updateFloat('verdantTime',motion.time);}
- getCustomCode(type){return type==='vertex'?{CUSTOM_VERTEX_DEFINITIONS:'#ifdef VERDANT_PLANT\nattribute vec4 verdantOrgan;\n#ifdef INSTANCES\nattribute vec4 verdantState;\n#endif\n#endif',CUSTOM_VERTEX_UPDATE_POSITION:`
+ getUniforms(){return{ubo:[{name:'verdantMotion',size:4,type:'vec4'},{name:'verdantTime',size:1,type:'float'},{name:'verdantCare',size:4,type:'vec4'},{name:'verdantTouch',size:4,type:'vec4'}],vertex:'uniform vec4 verdantMotion; uniform float verdantTime; uniform vec4 verdantCare; uniform vec4 verdantTouch;'};}
+ bindForSubMesh(buffer,scene,engine,sub){const data=sub.getRenderingMesh().metadata?.verdantState||[1,0,1,0],motion=scene.metadata?.verdantMotion||{time:0,wind:0},touch=scene.metadata?.verdantTouch||{x:0,z:0,radius:1,strength:0},still=['moss','succulent','cactus','mushroom'].includes(this.type);buffer.updateFloat4('verdantMotion',data[0],data[1],still?0:motion.wind,Math.max(.1,data[2]));buffer.updateFloat('verdantTime',motion.time);buffer.updateFloat4('verdantCare',data[3]||0,still?0:this.type==='tree'?.18:1,0,0);buffer.updateFloat4('verdantTouch',touch.x,touch.z,Math.max(.1,touch.radius),touch.strength);}
+ getCustomCode(type){if(type==='fragment')return{CUSTOM_FRAGMENT_DEFINITIONS:'#ifdef VERDANT_PLANT\nvarying float vVerdantDroop;\n#endif',
+ // Thirsty tissue loses chlorophyll first: dull, yellowed and slightly darker.
+ CUSTOM_FRAGMENT_BEFORE_LIGHTS:'#ifdef VERDANT_PLANT\nfloat verdantLuma=dot(surfaceAlbedo,vec3(.3,.59,.11));surfaceAlbedo=mix(surfaceAlbedo,verdantLuma*vec3(1.1,.96,.56),vVerdantDroop*.55);\n#endif'};
+ return type==='vertex'?{CUSTOM_VERTEX_DEFINITIONS:'#ifdef VERDANT_PLANT\nattribute vec4 verdantOrgan;\nvarying float vVerdantDroop;\n#ifdef INSTANCES\nattribute vec4 verdantState;\n#endif\n#endif',CUSTOM_VERTEX_UPDATE_POSITION:`
 #ifdef VERDANT_PLANT
-vec3 verdantData=vec3(verdantMotion.x,verdantMotion.y,verdantMotion.w);
+vec3 verdantData=vec3(verdantMotion.x,verdantMotion.y,verdantMotion.w);float verdantDroop=verdantCare.x;
 #ifdef INSTANCES
-verdantData=verdantState.xyz;
+verdantData=verdantState.xyz;verdantDroop=verdantState.w;
 #endif
+vVerdantDroop=verdantDroop;
 vec3 anchor=verdantOrgan.xyz,offset=positionUpdated-anchor;
 if(verdantOrgan.w>=0.0){float unfolded=smoothstep(verdantOrgan.w,min(1.04,verdantOrgan.w+0.45),verdantData.x);positionUpdated.xz=anchor.xz+offset.xz*mix(0.28,1.0,unfolded);positionUpdated.y+=length(offset.xz)*(1.0-unfolded)*0.42;}
+// Turgor. One smooth field bends stems and fronds. Leaves and petals move
+// with the field at their attachment, so they stay attached and keep their
+// shape, then hang from that point.
+float sag=verdantDroop*verdantCare.y;vec3 verdantField=verdantOrgan.w>=0.0?anchor:positionUpdated;float lift=max(0.0,verdantField.y),spread=length(verdantField.xz);vec2 outward=spread>.001?verdantField.xz/spread:vec2(0.0);
+positionUpdated.y-=sag*(spread*spread*.22+lift*lift*.24);positionUpdated.xz+=outward*sag*min(.45,lift*lift*.3);
+if(verdantOrgan.w>=0.0)positionUpdated.y-=sag*length(positionUpdated.xz-anchor.xz)*.3;
 float distanceFromRoot=max(0.0,positionUpdated.y-anchor.y),wave=sin(verdantTime*.9+verdantData.y+anchor.x*2.1+anchor.z*1.7)+sin(verdantTime*2.0+verdantData.y+positionUpdated.x*5.3)*.2;
 float bend=min(.012,distanceFromRoot*distanceFromRoot*.005)*wave*verdantMotion.z/max(.1,verdantData.z);positionUpdated.x+=bend;positionUpdated.z+=bend*.43;
+#endif
+`,CUSTOM_VERTEX_UPDATE_WORLDPOS:`
+#ifdef VERDANT_PLANT
+// A brushing hand or a tap bends nearby plants away in world space. Each plant
+// leans as one piece from its base, and leaves move with their attachment, so
+// nothing stretches and the soil contact never moves.
+vec3 verdantPoint=verdantOrgan.w>=0.0?(finalWorld*vec4(anchor,1.0)).xyz:worldPos.xyz;float verdantHeight=max(0.0,verdantPoint.y-finalWorld[3].y);
+vec2 verdantAway=finalWorld[3].xz-verdantTouch.xy;if(length(verdantAway)<.08)verdantAway=verdantPoint.xz-verdantTouch.xy;verdantAway/=max(.001,length(verdantAway));
+float verdantPush=verdantTouch.w*verdantCare.y*(1.0-smoothstep(verdantTouch.z*.3,verdantTouch.z,length(verdantPoint.xz-verdantTouch.xy)));
+worldPos.xz+=verdantAway*verdantPush*min(.3,verdantHeight*verdantHeight*.55);worldPos.y-=abs(verdantPush)*min(.1,verdantHeight*verdantHeight*.14);vPositionW=vec3(worldPos);
 #endif
 `}:null;}
 }

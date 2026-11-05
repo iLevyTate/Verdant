@@ -5,8 +5,11 @@ const state=C.generate('graphics-guru','woodland','sandbox'),world=createWorld(s
 const textures=[
  ['fern','albedoTexture',0,'6a3cb741abff9d1568df04dc0e70ab20daaa1e3b4ef46d84d8d2033c27e2a6ec'],
  ['fern','bumpTexture',0,'08f4800578022206ad929b8888cbd841fa5453e007b93eb8f9697f2e7d126804'],
- ['moss','albedoTexture',0,'94d88927eacebbc8f48e629db61ce5eca8a00945eae037a4aba78eb8e3d83909'],
- ['moss','bumpTexture',0,'62d800dadf53f832a2e4fb29b6e336d7d532ed9a8f0cdf9fa7c0a7c0469ba8d3'],
+ ['cactus','albedoTexture',0,'94d88927eacebbc8f48e629db61ce5eca8a00945eae037a4aba78eb8e3d83909'],
+ ['cactus','bumpTexture',0,'62d800dadf53f832a2e4fb29b6e336d7d532ed9a8f0cdf9fa7c0a7c0469ba8d3'],
+ // Moss has its own fine, fuzzy surface; cactus and succulent keep the skin pixels above.
+ ['moss','albedoTexture',0,'75fc920323ae61528daa5cfb7a5e63b2589ebd6b5e49a535dd915748f65c3281'],
+ ['moss','bumpTexture',0,'20d1d9f0459b5775ef608388a846072dcf82571cba17678d475d9812730ccb69'],
  ['log','albedoTexture',2,'0475d40dd1a5d8599715e41c7e375979089dd17ffa52f5e820baaf69cce5765b']
 ];
 for(const [type,property,part,digest]of textures){const texture=G.botanicalMaterial(world.scene,type).subMaterials[part][property],data=texture.getContext().getImageData(0,0,512,512).data;assert.equal(crypto.createHash('sha256').update(data).digest('hex'),digest,type+' '+property+' must keep its original pixels');}

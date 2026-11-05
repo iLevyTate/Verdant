@@ -1,12 +1,14 @@
 (function(){
   'use strict';
-  const APP_RELEASE='release-552d1bba47086afd';
+  const APP_RELEASE='release-7f879cfaec4601fc';
   let canEdit=!(typeof MessageChannel!=='undefined'&&navigator.serviceWorker?.controller?.postMessage),blockReason='';
   let promptEvent,registration,applyingUpdate=false,offlineReady=false,deferredWorker,needsReload=false,lastCheck=0,checking=false,checkMessage='',reloading=false;
   let hadController=!!navigator.serviceWorker?.controller;
   const $=s=>document.querySelector(s),all=s=>document.querySelectorAll(s);
   const installed=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
-  const updateReady=()=>!!registration?.waiting||needsReload;
+  // The first install also waits briefly before activating. It is only an update
+  // when it would replace the worker already controlling this page.
+  const updateReady=()=>!!registration?.waiting&&!!navigator.serviceWorker?.controller||needsReload;
   function status(){
     all('[data-app-build]').forEach(e=>e.textContent='Build '+APP_RELEASE.replace('release-','')+(lastCheck?' · last check '+new Date(lastCheck).toLocaleTimeString():''));
     const ready=updateReady(),text=installed()?'Installed · '+(navigator.onLine?'on your home screen':'playing offline'):offlineReady?(navigator.onLine?'Ready to play offline':'Playing offline'):'Connect once to prepare offline play';
