@@ -72,6 +72,18 @@ function dropletTexture(scene){
  for(let i=0;i<2600;i++){const y=r()*size,top=y/size,x=r()*size,rad=.8+Math.pow(r(),3)*6.5;if(r()>.15+.85*top*top)continue;const g=ctx.createRadialGradient(x-rad*.3,y-rad*.35,rad*.1,x,y,rad);g.addColorStop(0,'rgba(255,255,255,.92)');g.addColorStop(.35,'rgba(226,236,230,.45)');g.addColorStop(.85,'rgba(140,162,150,.4)');g.addColorStop(1,'rgba(90,110,100,0)');ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(x,y,rad,rad*1.1,0,0,TAU);ctx.fill();}
  texture.hasAlpha=true;texture.uScale=8;texture.update(true);return texture;
 }
+// One stratum of the soil cross-section: a closed solid of revolution from y0 to
+// y1 whose radius follows radiusAt(y). Rings fall on every bend of that radius, so
+// the side never bulges past the curve it follows. Side UVs wrap once around and
+// run upward, as on Babylon's cylinders, so the scanned maps keep their scale.
+function stratum(name,y0,y1,radiusAt,bends,scene,segments=112){
+ const steps=Math.max(1,Math.ceil((y1-y0)/.04)),ys=[];for(let k=0;k<=steps;k++)ys.push(y0+(y1-y0)*k/steps);for(const y of bends)if(y>y0&&y<y1&&ys.every(v=>Math.abs(v-y)>1e-4))ys.push(y);ys.sort((a,b)=>a-b);
+ const positions=[],normals=[],uvs=[],indices=[],ring=segments+1;
+ for(const y of ys){const r=radiusAt(y),lo=Math.max(y0,y-.004),hi=Math.min(y1,y+.004),slope=(radiusAt(hi)-radiusAt(lo))/(hi-lo),n=Math.hypot(1,slope);for(let k=0;k<=segments;k++){const a=k/segments*TAU,cs=Math.cos(a),sn=Math.sin(a);positions.push(cs*r,y,sn*r);normals.push(cs/n,-slope/n,sn/n);uvs.push(k/segments,(y-y0)/(y1-y0));}}
+ for(let j=0;j<ys.length-1;j++)for(let k=0;k<segments;k++){const a=j*ring+k,b=a+ring;indices.push(a,a+1,b,a+1,b+1,b);}
+ for(const [y,up]of[[y0,-1],[y1,1]]){const centre=positions.length/3,r=radiusAt(y);positions.push(0,y,0);normals.push(0,up,0);uvs.push(.5,.5);for(let k=0;k<=segments;k++){const a=k/segments*TAU;positions.push(Math.cos(a)*r,y,Math.sin(a)*r);normals.push(0,up,0);uvs.push(.5+Math.cos(a)/2,.5+Math.sin(a)/2);}for(let k=0;k<segments;k++)if(up>0)indices.push(centre,centre+k+1,centre+k+2);else indices.push(centre,centre+k+2,centre+k+1);}
+ const mesh=new B.Mesh(name,scene),data=new B.VertexData;Object.assign(data,{positions,normals,uvs,indices});data.applyToMesh(mesh);return mesh;
+}
 class TerrariumWorld{
  constructor(canvas,state){
   this.canvas=canvas;this.state=state;this.templates={};this.visuals=new Map;this.animals=[];this.floating=[];this.terrain=null;this.time=0;this.raining=0;this.night=0;this.lastClimate=-100;this.brushRadius=.85;this.quality=window.innerWidth<700?1:2;
@@ -81,7 +93,7 @@ class TerrariumWorld{
   this.shadow=new B.ShadowGenerator(this.quality===1?1024:2048,this.sun);this.shadow.useBlurExponentialShadowMap=true;this.shadow.blurKernel=this.quality===1?12:24;this.shadow.normalBias=.012;this.shadow.bias=.0008;this.shadow.darkness=.23;this.sun.shadowMinZ=1;this.sun.shadowMaxZ=34;this.sun.autoUpdateExtends=true;
   this.mat=new B.StandardMaterial('soft botanical colors',s);this.mat.diffuseColor=B.Color3.White();this.mat.specularColor=new B.Color3(.025,.025,.025);this.mat.backFaceCulling=false;
   this.makeStage();this.makeVessel();this.makeEffects();this.rebuild(state);this.resize();if(root.VerdantGraphics)root.VerdantGraphics.configure(this,state.graphics);
-  this.engine.onContextLostObservable?.add(()=>{this.contextLost=true;window.dispatchEvent?.(new Event('verdant:renderer-lost'));});this.engine.onContextRestoredObservable?.add(()=>{this.contextLost=false;this.renderDirty=true;window.dispatchEvent?.(new Event('verdant:renderer-restored'));});this.engine.runRenderLoop(()=>this.renderFrame());this.handleResize=()=>this.requestResize();window.addEventListener('resize',this.handleResize);if(window.ResizeObserver){this.layoutObserver=new window.ResizeObserver(this.handleResize);for(const node of document.querySelectorAll('.safe-viewport,.topbar,.world-heading,.kit,.vitals,.journal,.inspector,.desktop-rail,.scene-actions,.interaction-hint,.bottom-bar'))this.layoutObserver.observe(node);}
+  this.engine.onContextLostObservable?.add(()=>{this.contextLost=true;window.dispatchEvent?.(new Event('verdant:renderer-lost'));});this.engine.onContextRestoredObservable?.add(()=>{this.contextLost=false;this.renderDirty=true;window.dispatchEvent?.(new Event('verdant:renderer-restored'));});this.engine.onResizeObservable?.add(()=>{this.canvasCleared=true;});this.engine.runRenderLoop(()=>this.renderFrame());this.handleResize=()=>this.requestResize();window.addEventListener('resize',this.handleResize);if(window.ResizeObserver){this.layoutObserver=new window.ResizeObserver(this.handleResize);for(const node of document.querySelectorAll('.safe-viewport,.topbar,.world-heading,.kit,.vitals,.journal,.inspector,.desktop-rail,.scene-actions,.interaction-hint,.bottom-bar'))this.layoutObserver.observe(node);}
  }
  material(name,hex,alpha=1){const m=new B.StandardMaterial(name,this.scene);m.diffuseColor=color(hex);m.specularColor=new B.Color3(.02,.02,.02);m.alpha=alpha;return m;}
  makeStage(){
@@ -139,16 +151,27 @@ class TerrariumWorld{
   const mesh=new B.Mesh('living soil',this.scene),data=new B.VertexData,normals=[];B.VertexData.ComputeNormals(positions,indices,normals);data.positions=positions;data.indices=indices;data.normals=normals;data.uvs=uvs;data.colors=this.terrainColors(positions,true);data.applyToMesh(mesh,true);mesh.material=root.VerdantGraphics.terrainMaterial(this.scene,s.biome);mesh.receiveShadows=true;mesh.isPickable=true;mesh.metadata={ground:true};this.terrain=mesh;mesh.setVerticesData('verdantSoil',this.soilSurfaceData(positions),true,4);this.terrainPositions=positions;this.terrainIndices=indices;
   this.buildSkirt();
   // A planted terrarium is built in strata: drainage stones against the glass,
-  // a thin charcoal filter, then substrate with perlite and bark. Every value
-  // is seeded, so the cross-section is identical each time a world loads.
+  // a thin charcoal filter, then substrate with perlite and bark. Each stratum
+  // follows the inside of the glass, which narrows toward its base, and stops at
+  // the soil column above. Grains are fitted against that same wall, so none
+  // passes through the glass, sinks below its floor or floats in front of the
+  // soil. Every value is seeded, so the cross-section is identical each time a
+  // world loads.
   const look={woodland:{stones:['#a39d8f','#8b8679','#b9b19f','#77746b','#958c7a'],bed:'#6f6a5f',filter:'#2c2926',chips:['#1e1c1a','#33302c','#46423b'],soil:'#5d4936',flecks:['#ece8dc','#dcd7c9'],bark:['#7b5a3c','#5f452f']},tropical:{stones:['#b0714b','#9c6140','#c1835a','#8a573a','#a8694a'],bed:'#76503a',filter:'#272422',chips:['#1d1b19','#302d29','#423e37'],soil:'#4a3a2b',flecks:['#ebe7da','#dcd6c7'],bark:['#6e4d33','#563c28']},desert:{stones:['#b59c78','#9a8566','#cdb995','#857258','#bfa47c'],bed:'#9b8467',filter:'#7c6a52',chips:['#6a5a45','#857154','#5b4c3a'],soil:'#c4a476',flecks:['#ebe0c6','#d6c39e'],bark:['#9a7d5a','#86694a']}}[s.biome]||{};
-  const fits=(y,h,inset)=>Math.min(C.vesselRadius(y-h/2,s),C.vesselRadius(y+h/2,s))-inset,layers=[{y:-1.08,h:.40,inset:.15,c:look.bed,map:'rock_01',scale:5},{y:-.85,h:.06,inset:.04,c:look.filter,map:'rock_01',scale:9},{y:-.625,h:.41,inset:.04,c:look.soil,map:s.biome==='desert'?'sand_01':'forest_ground_04',scale:6}];
-  for(const l of layers){const m=B.MeshBuilder.CreateCylinder('visible substrate',{height:l.h,diameter:Math.min(5.015,fits(l.y,l.h,l.inset))*2,tessellation:112},this.scene);m.position.y=l.y;m.scaling.set(spec.x,1,spec.z);m.material=root.VerdantGraphics.scannedMaterial(this.scene,'substrate '+s.biome+' '+l.y,l.map,l.scale);m.material.albedoColor=color(l.c).scale(1.25);m.isPickable=false;m.receiveShadows=true;this.layers.push(m);}
-  const g=new Geometry,r=C.rng(s.seed+'soil'),tone=(hex,spread)=>{const c=rgb(hex),k=1+(r()-.5)*spread;return c.map(x=>Math.min(1,x*k));},grain=(y0,y1,size0,size1,shape,colors,spread,seg,rings,jitter,lift=0)=>{const a=r()*TAU,y=y0+r()*(y1-y0),sz=size0+r()*(size1-size0),rad=C.vesselRadius(y,s)-.02-sz*shape[0]-lift;g.ellipsoid([Math.cos(a)*rad,y,Math.sin(a)*rad],[sz*shape[0],sz*shape[1],sz*shape[2]],tone(colors[Math.floor(r()*colors.length)],spread),seg,rings,jitter,r);};
-  for(let j=0;j<1150;j++)grain(-1.255,-.89,.045,.105,s.biome==='tropical'?[1,.94,1]:[1.15,.72,.95],look.stones,.18,5,3,s.biome==='tropical'?.06:.3);
-  for(let j=0;j<230;j++)grain(-.875,-.825,.018,.045,[1.2,.7,1],look.chips,.25,4,2,.55);
-  for(let j=0,n=s.biome==='desert'?90:250;j<n;j++)grain(-.8,-.45,.009,.024,[1,1,1],look.flecks,.08,5,3,.15);
-  for(let j=0;j<120;j++)grain(-.8,-.45,.014,.032,[2.1,.55,.9],look.bark,.2,5,2,.25);
+  const floor=spec.profile[0][0],column=5.015,glassAt=y=>C.vesselRadius(y,s),wall=y=>Math.min(glassAt(y)-.035,column),bends=spec.profile.map(p=>p[0]);
+  for(let i=1;i<spec.profile.length;i++){const [ya,ra]=spec.profile[i-1],[yb,rb]=spec.profile[i],da=ra-.035-column,db=rb-.035-column;if(da*db<0)bends.push(ya+(yb-ya)*da/(da-db));}
+  const layers=[{name:'drainage',y0:floor,y1:-.88,inset:.09,c:look.bed,map:'rock_01',scale:5},{name:'filter',y0:-.88,y1:-.82,inset:0,c:look.filter,map:'rock_01',scale:9},{name:'soil',y0:-.82,y1:-.42,inset:0,c:look.soil,map:s.biome==='desert'?'sand_01':'forest_ground_04',scale:6}];
+  for(const l of layers){const m=stratum('visible substrate',l.y0,l.y1,y=>wall(y)-l.inset,bends,this.scene);m.scaling.set(spec.x,1,spec.z);m.material=root.VerdantGraphics.scannedMaterial(this.scene,'substrate '+s.biome+' '+l.name,l.map,l.scale);m.material.albedoColor=color(l.c).scale(1.25);m.isPickable=false;m.receiveShadows=true;this.layers.push(m);}
+  // The radius at which a grain of half-width rx and half-height ry, centred at
+  // y, meets edge() without crossing it anywhere along its height.
+  const fit=(edge,y,rx,ry)=>{let best=Infinity;for(let k=-6;k<=6;k++){const t=k/6;best=Math.min(best,edge(y+t*ry)-rx*Math.sqrt(1-t*t));}return best-.004;};
+  // Vertex jitter can push a grain past its nominal size, so the fit allows for it.
+  // Stones sit against the wall; surface grains stand proud of it by `show` of their width.
+  const g=new Geometry,r=C.rng(s.seed+'soil'),tone=(hex,spread)=>{const c=rgb(hex),k=1+(r()-.5)*spread;return c.map(x=>Math.min(1,x*k));},grain=(y0,y1,size0,size1,shape,colors,spread,seg,rings,jitter,show=0)=>{const a=r()*TAU,u=r(),sz=size0+r()*(size1-size0),grow=1+jitter/2,rx=sz*Math.max(shape[0],shape[2])*grow,ry=sz*shape[1]*grow,low=Math.max(y0,floor+ry+.004),y=low+u*Math.max(0,y1-low),rad=Math.min(fit(wall,y,rx,ry)+show*rx,fit(glassAt,y,rx,ry)-.02);g.ellipsoid([Math.cos(a)*rad,y,Math.sin(a)*rad],[sz*shape[0],sz*shape[1],sz*shape[2]],tone(colors[Math.floor(r()*colors.length)],spread),seg,rings,jitter,r);};
+  for(let j=0;j<1150;j++)grain(floor,-.89,.045,.105,s.biome==='tropical'?[1,.94,1]:[1.15,.72,.95],look.stones,.18,5,3,s.biome==='tropical'?.06:.3);
+  for(let j=0;j<230;j++)grain(-.875,-.825,.018,.045,[1.2,.7,1],look.chips,.25,4,2,.55,.8);
+  for(let j=0,n=s.biome==='desert'?90:250;j<n;j++)grain(-.8,-.45,.009,.024,[1,1,1],look.flecks,.08,5,3,.15,.8);
+  for(let j=0;j<120;j++)grain(-.8,-.45,.014,.032,[2.1,.55,.9],look.bark,.2,5,2,.25,.8);
   const grains=g.mesh('gravel and mineral grains',this.scene,this.mat);grains.scaling.set(spec.x,1,spec.z);this.layers.push(grains);
  }
  terrainColors(p,rebuild=false){
@@ -344,10 +367,18 @@ void main(){vec2 p=vWorld.xz;vec4 heightSample=texture2D(terrainHeights,p/terrai
  reducedMotion(){this.motionPreference??=window.matchMedia?.('(prefers-reduced-motion: reduce)')||{matches:false};return this.state.motion==='reduced'||this.state.motion!=='full'&&this.motionPreference.matches;}
  performanceReport(){const m=this.frameStats,count=this.state.entities.filter(e=>C.WILDLIFE_ENABLED||!C.ELEMENTS[e.type].creature).length;return m?.frames>30?Math.round(1/m.frame)+' fps · '+count+' elements':'Measuring live frame rate…';}
  cameraSignature(){const c=this.camera;return[c.alpha,c.beta,c.radius,c.target.x,c.target.y,c.target.z,c.inertialAlphaOffset,c.inertialBetaOffset,c.inertialRadiusOffset,c.inertialPanningX,c.inertialPanningY].join(':');}
- renderFrame(){if(document.hidden||this.contextLost)return;const now=performance.now(),elapsed=(now-(this.lastDraw??now-17))/1000;if(elapsed<1/(this.state.batteryMode?30:60)-.001)return;const signature=this.cameraSignature(),idle=this.state.paused&&this.reducedMotion();if(idle&&!this.renderDirty&&signature===this.lastCameraSignature)return;
+ renderFrame(){if(document.hidden||this.contextLost)return;const now=performance.now(),first=this.lastDraw===undefined,elapsed=first?1/60:(now-this.lastDraw)/1000;
+  // The first frame always draws; with no previous draw to measure from, the
+  // 30 fps battery cap would otherwise hold it back forever. A canvas cleared by a
+  // resize is redrawn at once. A few milliseconds of tolerance absorb callback
+  // jitter, so the cap keeps every other refresh on a 60 Hz screen.
+  if(!first&&!this.canvasCleared&&elapsed<1/(this.state.batteryMode?30:60)-.004)return;const signature=this.cameraSignature(),idle=this.state.paused&&this.reducedMotion();if(idle&&!this.renderDirty&&!this.canvasCleared&&signature===this.lastCameraSignature)return;
+  // Resizing a WebGL canvas clears it. Layout and automatic resolution changes are
+  // applied here, just before drawing, so a cleared canvas never reaches the screen.
+  if(this.resizePending){this.resizePending=false;this.resize();}root.VerdantGraphics?.adapt(this,elapsed);
   // Babylon skips meshes whose shaders or textures are still loading. A paused, calm
   // view stops drawing after a frame, so keep the request open until a frame starts ready.
-  this.lastDraw=now;this.frameDelta=Math.min(.25,elapsed);this.time+=Math.min(elapsed,.1);const start=performance.now();this.animate();const animated=performance.now(),complete=!idle||this.scene.isReady();this.scene.render();this.renderDirty=!complete;this.lastCameraSignature=this.cameraSignature();if(elapsed>0&&elapsed<.5){const m=this.frameStats||(this.frameStats={frame:elapsed,animation:0,render:0,frames:0,samples:[]});m.frame+=(elapsed-m.frame)*.06;m.animation+=(animated-start-m.animation)*.06;m.render+=(performance.now()-animated-m.render)*.06;m.frames++;m.samples.push(elapsed*1000);if(m.samples.length>240)m.samples.shift();}root.VerdantGraphics?.adapt(this,elapsed);}
+  this.lastDraw=now;this.frameDelta=Math.min(.25,elapsed);this.time+=Math.min(elapsed,.1);const start=performance.now();this.animate();const animated=performance.now(),complete=!idle||this.scene.isReady();this.scene.render();this.canvasCleared=false;this.renderDirty=!complete;this.lastCameraSignature=this.cameraSignature();if(elapsed>0&&elapsed<.5){const m=this.frameStats||(this.frameStats={frame:elapsed,animation:0,render:0,frames:0,samples:[]});m.frame+=(elapsed-m.frame)*.06;m.animation+=(animated-start-m.animation)*.06;m.render+=(performance.now()-animated-m.render)*.06;m.frames++;m.samples.push(elapsed*1000);if(m.samples.length>240)m.samples.shift();}}
  recordSimulation(ms){const samples=this.simulationSamples||(this.simulationSamples=[]);samples.push(ms);if(samples.length>240)samples.shift();}
  diagnostics(){const stats=this.frameStats,samples=(stats?.samples||[]).slice().sort((a,b)=>a-b),simulation=(this.simulationSamples||[]).slice().sort((a,b)=>a-b),gpu=this.engineInstrumentation?.gpuFrameTimeCounter?.average;return{renderer:this.engine instanceof B.NullEngine?'NullEngine CPU only':'WebGL '+this.engine.webGLVersion,quality:this.state.graphics,frameCap:this.state.batteryMode?30:60,frameP50Ms:samples.length?samples[Math.floor(samples.length*.5)]:null,frameP95Ms:samples.length?samples[Math.min(samples.length-1,Math.floor(samples.length*.95))]:null,cpuAnimationMs:stats?.animation??null,cpuRenderSubmissionMs:stats?.render??null,simulationP95Ms:simulation.length?simulation[Math.min(simulation.length-1,Math.floor(simulation.length*.95))]:null,gpuTiming:gpu>0?'available':'unavailable',gpuMs:gpu>0?gpu/1e6:null,drawCalls:this.sceneInstrumentation?.drawCallsCounter?.current??null,shaderCompilationTotalMs:this.engineInstrumentation?.shaderCompilationTimeCounter?.total??null,meshes:this.scene.meshes.length,geometries:this.scene.geometries.length,contextLost:!!this.contextLost};}
  cameraStep(action){const c=this.camera;if(action==='left')c.alpha-=.16;if(action==='right')c.alpha+=.16;if(action==='up')c.beta=C.clamp(c.beta-.1,c.lowerBetaLimit,c.upperBetaLimit);if(action==='down')c.beta=C.clamp(c.beta+.1,c.lowerBetaLimit,c.upperBetaLimit);if(action==='in')c.radius=Math.max(c.lowerRadiusLimit,c.radius*.86);if(action==='out')c.radius=Math.min(c.upperRadiusLimit,c.radius/.86);this.renderDirty=true;}
@@ -356,7 +387,9 @@ void main(){vec2 p=vWorld.xz;vec4 heightSample=texture2D(terrainHeights,p/terrai
  refreshReflectionList(){if(this.pondReflection)this.pondReflection.renderList=[this.terrain,this.skirt,...this.layers,this.groundDetails?.mesh,...[...this.visuals.values()].map(v=>v.root)].filter(Boolean);}
  async capturePhoto(edge=1280){if(this.contextLost||this.engine instanceof B.NullEngine)throw Error('A GPU renderer is required.');const limit=C.clamp(edge,640,1920),aspect=C.clamp(window.innerWidth/window.innerHeight,.5,2),size=aspect>=1?{width:limit,height:Math.round(limit/aspect)}:{width:Math.round(limit*aspect),height:limit},viewport=this.camera.viewport;this.camera.viewport=new B.Viewport(0,0,1,1);let timer;try{return await Promise.race([B.Tools.CreateScreenshotUsingRenderTargetAsync(this.engine,this.camera,size,'image/png',1,true),new Promise((resolve,reject)=>{timer=setTimeout(()=>reject(Error('Photo timed out')),15000);})]);}finally{clearTimeout(timer);this.camera.viewport=viewport;this.renderDirty=true;}}
 
- requestResize(){if(this.resizeFrame!==undefined&&this.resizeFrame!==null)return;if(!window.requestAnimationFrame){this.resize();return;}this.resizeFrame=window.requestAnimationFrame(()=>{this.resizeFrame=null;if(!this.disposed)this.resize();});}
+ // A separate animation-frame callback could resize, and so clear, the canvas
+ // after this frame's draw. The next renderFrame applies the resize before drawing.
+ requestResize(){this.resizePending=true;this.renderDirty=true;}
  viewBounds(w=window.innerWidth,h=window.innerHeight){
   const box=selector=>{const e=document.querySelector?.(selector);if(!e||e.hidden||window.getComputedStyle?.(e)?.display==='none'||selector!=='.safe-viewport'&&window.getComputedStyle?.(e)?.visibility==='hidden')return null;const r=e.getBoundingClientRect?.();return r&&r.width>0&&r.height>0?r:null;},safe=box('.safe-viewport');
   let left=safe?.left||0,top=safe?.top||0,right=safe?.right||w,bottom=safe?.bottom||h;
@@ -379,7 +412,7 @@ void main(){vec2 p=vWorld.xz;vec4 heightSample=texture2D(terrainHeights,p/terrai
   this.baseRadius=this.camera.radius;this.baseTarget=this.camera.target.clone();this.camera.alpha=alpha;this.camera.beta=beta;this.camera.radius=C.clamp(this.baseRadius*ratio,3.5,60);this.camera.upperRadiusLimit=Math.max(35,this.baseRadius*1.7);this.camera.lowerRadiusLimit=3.5;
   if(closeupId!==null&&closeupId!==undefined&&this.visuals.has(closeupId)){this.camera.radius=closeupRadius;this.lookCloser(closeupId,true);}
  }
- dispose(){this.disposed=true;window.removeEventListener('resize',this.handleResize);this.layoutObserver?.disconnect();if(this.resizeFrame!==undefined&&this.resizeFrame!==null)window.cancelAnimationFrame?.(this.resizeFrame);this.pondReflection?.dispose();this.sceneInstrumentation?.dispose();this.engineInstrumentation?.dispose();this.engine.dispose();}
+ dispose(){this.disposed=true;window.removeEventListener('resize',this.handleResize);this.layoutObserver?.disconnect();this.pondReflection?.dispose();this.sceneInstrumentation?.dispose();this.engineInstrumentation?.dispose();this.engine.dispose();}
 }
 root.TerrariumWorld=TerrariumWorld;
 })(window);

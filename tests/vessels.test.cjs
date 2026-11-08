@@ -90,5 +90,22 @@ for(let cycle=0;cycle<2;cycle++)for(const shape of Object.keys(C.VESSEL_SHAPES))
  assert.equal(JSON.stringify(state),saved,'vessel rendering must not change terrain, plants or progress');
  if(shape==='oval'&&size==='roomy'){if(cycle)assert.deepEqual(counts(),warm,'switching every vessel repeatedly must not accumulate scene resources');else warm=counts();}
 }
+// The soil cross-section, its drainage stones and its grains stay behind the glass
+// and above its floor, where the plinth begins. Surface grains stand only slightly
+// proud of the soil column, so nothing floats in the gap in front of it.
+for(const biome of Object.keys(C.BIOMES))for(const shape of Object.keys(C.VESSEL_SHAPES)){
+ const state=C.generate('substrate-strata',biome,'sandbox','self',{vesselShape:shape,vesselSize:'standard',baseStyle:'stone'}),spec=C.vesselSpec(state),floor=spec.profile[0][0];
+ world.rebuild(state);assert.equal(world.layers.length,4);
+ for(const mesh of world.layers){
+  const vertices=mesh.getVerticesData('position'),matrix=mesh.computeWorldMatrix(true);
+  for(let i=0;i<vertices.length;i+=3){
+   const p=B.Vector3.TransformCoordinates(new B.Vector3(vertices[i],vertices[i+1],vertices[i+2]),matrix),r=Math.hypot(p.x/spec.x,p.z/spec.z),where=JSON.stringify({biome,shape,mesh:mesh.name,y:p.y,r});
+   assert(p.y>=floor-1e-9,'substrate must not sink below the glass floor: '+where);
+   assert(r<=C.vesselRadius(p.y,state)-.01,'every substrate vertex must stay inside the glass: '+where);
+   assert(r<=5.085,'grains must not float in front of the soil column: '+where);
+  }
+  if(mesh.name==='visible substrate'){const normals=mesh.getVerticesData('normal'),faces=[];B.VertexData.ComputeNormals(vertices,mesh.getIndices(),faces);for(let i=0;i<normals.length;i+=3)assert(normals[i]*faces[i]+normals[i+1]*faces[i+1]+normals[i+2]*faces[i+2]>0,'strata faces must point outward so culling keeps the visible side');}
+ }
+}
 world.dispose();
-console.log('Passed: legacy and new vessel saves, safe explicit resizing, frozen archived wildlife, transparent circular base shadow, all 12 vessel footprints, real glass clearance, sculpt/picking agreement, camera framing, finish choices, and bounded resources.');
+console.log('Passed: legacy and new vessel saves, safe explicit resizing, frozen archived wildlife, transparent circular base shadow, all 12 vessel footprints, real glass clearance, sculpt/picking agreement, camera framing, finish choices, contained soil strata, and bounded resources.');
