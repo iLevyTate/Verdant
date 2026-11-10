@@ -1,18 +1,21 @@
 (function(){
   'use strict';
-  const APP_RELEASE='release-1ddb49a9a6d4c9e8';
+  const APP_RELEASE='release-cabe071eaa832990';
   let canEdit=!(typeof MessageChannel!=='undefined'&&navigator.serviceWorker?.controller?.postMessage),blockReason='';
   let promptEvent,registration,applyingUpdate=false,offlineReady=false,deferredWorker,needsReload=false,lastCheck=0,checking=false,checkMessage='',reloading=false;
   let hadController=!!navigator.serviceWorker?.controller;
   const $=s=>document.querySelector(s),all=s=>document.querySelectorAll(s);
-  const installed=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+  let installSeen=false;try{installSeen=localStorage.getItem('verdant-installed')==='true';}catch{}
+  const installed=()=>installSeen||matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
   // The first install also waits briefly before activating. It is only an update
   // when it would replace the worker already controlling this page.
   const updateReady=()=>!!registration?.waiting&&!!navigator.serviceWorker?.controller||needsReload;
   function status(){
+    if(installed()){installSeen=true;try{localStorage.setItem('verdant-installed','true');}catch{}}
     all('[data-app-build]').forEach(e=>e.textContent='Build '+APP_RELEASE.replace('release-','')+(lastCheck?' · last check '+new Date(lastCheck).toLocaleTimeString():''));
     const ready=updateReady(),text=installed()?'Installed · '+(navigator.onLine?'on your home screen':'playing offline'):offlineReady?(navigator.onLine?'Ready to play offline':'Playing offline'):'Connect once to prepare offline play';
     all('[data-pwa-status]').forEach(e=>e.textContent=text);
+    all('[data-get-app]').forEach(e=>{e.hidden=installed();});
     all('[data-install-app]').forEach(e=>{e.hidden=installed()||(e.hasAttribute('data-native-install')&&!promptEvent);e.textContent=promptEvent?'Install Verdant':'Install / add to home screen';});
     all('[data-update-app]').forEach(e=>{e.hidden=!ready&&!applyingUpdate;e.disabled=applyingUpdate;e.textContent=applyingUpdate?'Updating…':'Save & update now';});
     all('[data-show-update]').forEach(e=>{e.hidden=!ready;e.disabled=applyingUpdate;});
@@ -41,7 +44,7 @@
   }
   async function install(){
     if(installed())return;
-    if(promptEvent){const event=promptEvent;promptEvent=null;try{await event.prompt();await event.userChoice;}catch(problem){const dialog=$('#installDialog');if(dialog&&!dialog.open)dialog.showModal();}finally{status();}return;}
+    if(promptEvent){const event=promptEvent;promptEvent=null;try{await event.prompt();const choice=await event.userChoice;if(choice?.outcome==='accepted'){installSeen=true;try{localStorage.setItem('verdant-installed','true');}catch{}}}catch(problem){const dialog=$('#installDialog');if(dialog&&!dialog.open)dialog.showModal();}finally{status();}return;}
     const dialog=$('#installDialog');if(dialog&&!dialog.open)dialog.showModal();
   }
   function observeWorker(worker){
@@ -67,8 +70,9 @@
       const ready=await navigator.serviceWorker.ready;if(typeof MessageChannel==='undefined'||!ready.active?.postMessage)offlineReady=!!ready.active;await refreshClients();offerUpdate();
     }catch(problem){checkMessage='Update setup is unavailable. Reopen the app online to retry.';status();}
   }
-  window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();promptEvent=event;status();});
-  window.addEventListener('appinstalled',()=>{promptEvent=null;status();});
+  window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();installSeen=false;try{localStorage.removeItem('verdant-installed');}catch{}promptEvent=event;status();});
+  window.addEventListener('appinstalled',()=>{installSeen=true;try{localStorage.setItem('verdant-installed','true');}catch{}promptEvent=null;status();});
+  matchMedia('(display-mode: standalone)').addEventListener?.('change',status);
   window.addEventListener('online',()=>{status();checkForUpdates(true);});window.addEventListener('offline',status);
   window.addEventListener('focus',()=>checkForUpdates());
   document.addEventListener('visibilitychange',()=>{if(!document.hidden){checkForUpdates(true);offerUpdate();}});
