@@ -16,11 +16,22 @@ for(const mode of ['journey','sandbox']) for(const type of [...C.PLANTS,'rock','
   assert.deepEqual(C.place(s,type,0,0,options).entity,expected,'preview and placement must agree on size, variant, orientation and ID');
 }
 const state=flat(),world=createWorld(state);world.engine.getDeltaTime=()=>1000/60;
+const wall=world.skirt,wallMaterial=wall.material,wallPositions=wall.getVerticesData('position').slice(),wallIndices=wall.getIndices().slice();
+assert.notEqual(wallMaterial,world.terrain.material,'soil wall must not share shader state with the live soil surface');
+assert(!wallMaterial.verdantSoil,'the wall must not request the missing live-soil vertex buffer');
+assert(world.terrain.material.verdantSoil,'the top retains its dynamic moisture shader');
+world.renderDirty=false;world.showBrush(null);assert(world.renderDirty,'hiding a preview must redraw a paused calm view');
 // Compare actual Babylon meshes, rather than repeating scale formulas.
 for(const type of [...C.PLANTS,'rock','log','crystal']) for(const size of [.6,1.5]) {
   const before=JSON.stringify(state),point={x:0,y:.6,z:0};
-  world.showPreview(point,type,.4,size,true);
+  world.renderDirty=false;world.showPreview(point,type,.4,size,true);
   assert.equal(JSON.stringify(state),before,'render previews must leave saved state unchanged');
+  assert(world.renderDirty,'moving a preview must redraw a paused calm view');
+  assert.equal(world.skirt,wall);assert.equal(wall.material,wallMaterial);assert(wall.isVisible);
+  sameBuffer(wall.getVerticesData('position'),wallPositions,'hover must preserve the soil ring');
+  sameBuffer(wall.getIndices(),wallIndices,'hover must preserve the soil ring triangles');
+  world.renderDirty=false;
+
   const preview=world.preview,expected=preview.getVerticesData('position').slice(),scale=preview.scaling.clone();
   const placed=C.place(state,type,0,0,{rotation:.4,size}),visual=world.addEntity(placed.entity);
   assert(B.Vector3.Distance(visual.root.scaling,scale)<1e-8,type+' preview must match its placed size');
