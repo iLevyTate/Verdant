@@ -190,7 +190,9 @@ class TerrariumWorld{
    for(const [x,h,z,c,u]of[[Math.cos(a)*r,-.43,Math.sin(a)*r,[.64,.62,.58],k/n],[Math.cos(b)*r,-.43,Math.sin(b)*r,[.64,.62,.58],(k+1)/n],[Math.cos(a)*r,y-.075,Math.sin(a)*r,[.79,.78,.73],k/n],[Math.cos(b)*r,yn-.075,Math.sin(b)*r,[.79,.78,.73],(k+1)/n],[Math.cos(a)*r,y,Math.sin(a)*r,[.91,.90,.85],k/n],[Math.cos(b)*r,yn,Math.sin(b)*r,[.91,.90,.85],(k+1)/n]]){g.vertex([x*spec.x,h,z*spec.z],c);uvs.push(u*3,h*.9);}
    g.tri(base,base+2,base+1);g.tri(base+1,base+2,base+3);g.tri(base+2,base+4,base+3);g.tri(base+3,base+4,base+5);
   }
-  this.skirt=g.mesh('cross section of the earth',this.scene,root.VerdantGraphics.terrainMaterial(this.scene,s.biome));this.skirt.setVerticesData(B.VertexBuffer.UVKind,uvs);this.skirt.receiveShadows=true;
+  // The wall has no verdantSoil vertex buffer. Keep its shader separate from
+  // the live soil surface so their differing attributes cannot share bind state.
+  this.skirt=g.mesh('cross section of the earth',this.scene,root.VerdantGraphics.terrainMaterial(this.scene,s.biome,true));this.skirt.setVerticesData(B.VertexBuffer.UVKind,uvs);this.skirt.receiveShadows=true;
  }
  refreshTerrain(){
   this.renderDirty=true;this.lastTerrainRevision=this.state.terrainRevision;const p=this.terrainPositions;let minX=Infinity,maxX=-Infinity,minZ=Infinity,maxZ=-Infinity;
@@ -340,7 +342,7 @@ void main(){vec2 p=vWorld.xz;vec4 heightSample=texture2D(terrainHeights,p/terrai
  nudge(id,strength=1){const e=this.state.entities.find(e=>e.id===id);if(!e||C.ELEMENTS[e.type]?.category!=='plants'||this.reducedMotion())return;const t=this.touch||(this.touch={x:0,z:0,value:0,velocity:0,target:0}),a=Math.random()*TAU;t.x=e.x+Math.cos(a)*.3;t.z=e.z+Math.sin(a)*.3;t.velocity+=5*strength;this.renderDirty=true;}
  sprout(id){const v=this.visuals.get(id);if(!v||this.reducedMotion())return;v.displayGrowth=(v.entity.growth||.2)*.12;v.emerging=true;this.nudge(id,.45);}
  pointAt(clientX,clientY){const rect=this.canvas.getBoundingClientRect();const hit=this.scene.pick(clientX-rect.left,clientY-rect.top,m=>m===this.terrain);if(!hit?.hit)return null;hit.pickedPoint.y=C.heightAt(hit.pickedPoint.x,hit.pickedPoint.z,this.state);return hit.pickedPoint;}
- showBrush(p,type,radius){if(!p){this.brush.isVisible=false;if(this.preview)this.preview.isVisible=false;if(this.matureGhost)this.matureGhost.isVisible=false;return;}this.brush.isVisible=true;const r=['raise','lower','smooth','pond'].includes(type)?radius:.38;this.brush.scaling.set(r*2.5,1,r*2.5);this.brush.position.set(p.x,Math.max(p.y,this.state.water)+.025,p.z);}
+ showBrush(p,type,radius){this.renderDirty=true;if(!p){this.brush.isVisible=false;if(this.preview)this.preview.isVisible=false;if(this.matureGhost)this.matureGhost.isVisible=false;return;}this.brush.isVisible=true;const r=['raise','lower','smooth','pond'].includes(type)?radius:.38;this.brush.scaling.set(r*2.5,1,r*2.5);this.brush.position.set(p.x,Math.max(p.y,this.state.water)+.025,p.z);}
  pickBranch(clientX,clientY,id){const rect=this.canvas.getBoundingClientRect(),hit=this.scene.pick(clientX-rect.left,clientY-rect.top,m=>m.metadata?.entityId!==undefined);if(!hit?.hit||hit.pickedMesh.metadata.entityId!==id)return null;const visual=this.visuals.get(id),indices=hit.pickedMesh.getIndices(),vertices=indices?.slice(hit.faceId*3,hit.faceId*3+3);return visual?.source.metadata?.branches?.find(b=>vertices?.some(i=>i>=b.start&&i<b.start+b.count))?.id??null;}
  pickEntity(clientX,clientY){const rect=this.canvas.getBoundingClientRect();const hit=this.scene.pick(clientX-rect.left,clientY-rect.top,m=>m.metadata?.entityId!==undefined);return hit?.hit?hit.pickedMesh.metadata.entityId:null;}
  focusEntity(id){this.selectedId=id;this.focus.isVisible=!!id;}
