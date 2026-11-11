@@ -38,3 +38,11 @@ Check a real WebGL desktop browser at normal and increased browser zoom, includi
 ## Version 4 follow-up
 
 Production DOM tests now cover named save/open/reload, preferences across garden replacement, coordinate placement, specimen search and numeric transform/Undo. Native browser UI checks saved “Fern study” at 1280 × 800 and inspected the confirmed slot at 390 × 844 using an unpublished NullEngine/readiness fixture. The labelled [phone confirmation](docs/qa/gardens-v4.jpg) excludes GPU rendering. True 200% zoom, assistive technology, native Web Locks/service-worker lifecycle and physical graphics remain device acceptance.
+
+## November 10, 2026 follow-up: compact inspector and coverage gaps
+
+A real Chromium CSS-layout check found that the compact inspector inherited the desktop `top` offset while overriding its `left` offset. It overlapped the Build panel at 901, 1024, and 1440 px widths. Clear the inherited top position and keep the desktop inspector in the reserved right rail. The repeated measurements show no Build-panel overlap at these widths; at 390 px the mobile bottom panel and hidden Build tray remain in place. Production DOM interaction tests also pass. These layout measurements use production markup and CSS with scripts removed, rather than asserting GPU scene appearance.
+
+Native Chromium Web Locks were checked in two same-origin pages using the production workspace module: the first page acquired editing ownership, the second was denied, explicit release allowed the second to acquire, and closing the owning page allowed the first to reclaim. This verifies real browser lock behavior; it does not certify the service-worker release-ownership gate or a mixed-version rollout.
+
+Remaining acceptance gaps include physical Intel/AMD/NVIDIA and Apple GPU output, Safari/Firefox, Android/iPhone gestures and thermal behavior, true browser zoom and screen readers, native installation/uninstallation prompts, old-to-new installed service-worker updates, and GPU context loss/restoration. Automated logic/DOM tests and software-rendered Chromium checks do not replace those checks. The reported plant-preview soil-ring disappearance has not been reproduced on the available software renderer.
