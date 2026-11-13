@@ -1,0 +1,8 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["local>iLevyTate/renovate-config"],
+  "enabled": true,
+  "automerge": false,
+  "platformAutomerge": false,
+  "ignoreTests": false
+}
