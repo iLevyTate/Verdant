@@ -17,6 +17,6 @@
   },
   "devDependencies": {
     "@napi-rs/canvas": "0.1.100",
-    "linkedom": "0.18.14"
+    "linkedom": "0.18.15"
   }
 }
