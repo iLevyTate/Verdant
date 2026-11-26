@@ -1,6 +1,6 @@
 (function(){
   'use strict';
-  const APP_RELEASE='release-9883136a4a94c5a5';
+  const APP_RELEASE='release-d2f1edadd9fe4848';
   let canEdit=!(typeof MessageChannel!=='undefined'&&navigator.serviceWorker?.controller?.postMessage),blockReason='';
   let promptEvent,registration,applyingUpdate=false,offlineReady=false,deferredWorker,needsReload=false,lastCheck=0,checking=false,checkMessage='',reloading=false;
   let hadController=!!navigator.serviceWorker?.controller;

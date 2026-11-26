@@ -30,3 +30,12 @@ Targets for tuning: prefer a steady 60 FPS where the device has headroom; keep a
 Use Files to test three named gardens, retained device settings, active-slot reopening, archive/export and quota recovery. Inspect individual bonsai branches and numeric transforms; confirm Undo keeps later growth/care/rewards. Verify native HTTPS Web Locks with two current tabs plus a legacy tab during rollout. Confirm each older document retains its release assets, bad/offline downloads leave the installed release usable and activation still needs a checkpoint.
 
 Compare Auto overview/close-up, Performance and Cinematic on identical fixtures. Inspect unfolding leaves, wet/steep soil, glass lip and pond reflection; verify offline color decode/JPEG fallback with no CDN. Export 1280/1920 PNGs in portrait/landscape and daylight/moonlight, checking color and absence of UI. Download performance diagnostics after warm-up and ten minutes. Check 30 fps Battery mode, paused Calm idle redraw, background/resume and forced context loss/restoration in a disposable fixture. These are manual acceptance tasks, not results inferred from the automated harness.
+
+
+## Garden regression checks
+
+Automated coverage now includes immediate grass save/reload for all three variants without running timers or relying on lifecycle events, durable Undo/Redo, low seed recovery from an empty paused garden, explicit additive fern patches, and phone settings/inspection/dialog handoffs. Scene tests load the bundled browser engine rather than a separately updated npm engine. The new gardening scene suite checks saved grass visibility and mature fern placement.
+
+The November 25, 2026 browser pass uses the production UI with a local NullEngine fixture because the available browser has no WebGL. It verifies phone layout, section visibility, fixed close/return controls and native dialog transitions. It does not establish GPU appearance, physical-device frame rates, or native OS suspension behavior.
+
+On a physical phone, plant grass and immediately close/reopen the installed app. Check the same variant, position, seed balance and growth. Spend down to fewer than 9 seeds with no harvest ready, refill, then plant again. In an existing garden, add a fern patch and Undo it; existing plants and terrain must stay unchanged. Open each settings section, rotate the phone, inspect and move a plant, open/close a native options dialog, and return to touch editing without a second dismissal tap.
