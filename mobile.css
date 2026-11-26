@@ -101,3 +101,52 @@ html,body{height:100%;height:100dvh}
 .vessel-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.vessel-options label,.new-vessel-fields label{display:flex;flex-direction:column;gap:7px;font-size:12px;color:#526747;font-weight:500}.vessel-options select,.new-vessel-fields select{width:100%;min-width:0;min-height:44px;padding:8px 10px;border:1px solid #c7d0bc;border-radius:8px;background:#fbfcf7;color:#3e5940;font:inherit;font-size:16px}.vessel-footprint{font-size:12px;line-height:1.6;color:#526747;background:#edf2e6;border-radius:8px;padding:10px 12px}.vessel-message{font-size:13px;line-height:1.6;color:#7a4d28;background:#fff1d8;padding:12px;border-radius:8px}.new-vessel-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;text-align:left}
 .night-ui .terrarium-card>strong,.night-ui .terrarium-card p{color:#c4d5b4}.night-ui .terrarium-card button{background:#30452f;color:#d7e4ca;border-color:#647858}
 @media(max-width:380px){.new-vessel-fields{grid-template-columns:1fr}.vessel-options{gap:8px}.vessel-choice small{font-size:11px}}
+
+/* Transient phone panels leave a clear path back to the garden. */
+#editGardenBtn{display:none}
+.vitals .fern-patch-card{display:none}.care-open .vitals .fern-patch-card{display:block}
+.fern-patch-card{padding:14px 0;border-bottom:1px solid var(--border)}
+.fern-patch-card strong,.seed-supply strong{font-size:13px;color:var(--ink)}
+.fern-patch-card p,.seed-supply p{font-size:12px;line-height:1.6;color:#526747;margin:7px 0 10px}
+.fern-patch-card button{width:100%;min-height:44px;padding:9px;border:1px solid #bdcbb3;border-radius:8px;background:#eef3e7;color:#3d614d;font:inherit}
+.seed-supply{padding:14px;border:1px solid var(--border);border-radius:12px;background:#edf3e5;margin-bottom:20px}
+.seed-supply .workspace-button-row{margin-bottom:0}.seed-supply button:disabled,.fern-patch-card button:disabled{opacity:.55;cursor:default}
+.harvest-button.refill .desktop-harvest-label,.harvest-button.refill .harvest-count{display:none}
+.night-ui .seed-supply,.night-ui .fern-patch-card button{background:#30452f;color:#d7e4ca;border-color:#647858}
+.night-ui .seed-supply p,.night-ui .fern-patch-card p{color:#c4d5b4}
+@media(max-width:900px){
+ .care-open .vitals{display:flex;flex-direction:column;top:auto;bottom:calc(76px + env(safe-area-inset-bottom,0px));height:min(520px,60dvh,calc(100dvh - 300px));max-height:none;overflow:hidden;padding:0 16px 12px;z-index:30}
+ .care-open .care-header{flex:0 0 auto;padding:8px 0 12px;border-bottom:1px solid var(--border);margin-bottom:12px}
+ .care-open .care-title{margin:0 0 5px;font-size:21px;min-height:44px}
+ .care-open .settings-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;background:#edf2e6;border-radius:9px;padding:3px}
+ .settings-tabs button{min-height:44px;border-radius:7px;font-size:13px;color:#526747}
+ .settings-tabs button[aria-pressed=true]{background:#fff;color:#3d614d;font-weight:600;box-shadow:0 1px 4px #34473010}
+ .care-open .settings-content{display:block;flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-width:thin;padding-right:2px;scroll-padding:10px 0}
+ .care-open .vitals[data-settings-tab=garden] [data-settings-section]:not([data-settings-section=garden]),.care-open .vitals[data-settings-tab=display] [data-settings-section]:not([data-settings-section=display]),.care-open .vitals[data-settings-tab=files] [data-settings-section]:not([data-settings-section=files]){display:none!important}
+ .care-open .vitals .settings-save{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));flex:0 0 auto;gap:7px;margin:10px 0 0;padding-top:8px}
+ .settings-save p{grid-column:1/-1;font-size:11px}.settings-save button{font-size:12px;padding:8px 5px;white-space:normal}
+ .care-open #editGardenBtn{display:block;background:#3d614d;color:white;border-color:#3d614d}
+ .care-open .kit,.care-open .harvest-button,.care-open .journal{display:none}
+ .care-open .terrarium-card,.care-open .fern-patch-card{padding-top:0}.care-open .display-settings{margin-top:0;padding-top:0;border:0}
+ dialog[open]{overscroll-behavior:contain}dialog .dialog-close{position:sticky;float:right;top:0;z-index:2;background:var(--paper);border-radius:9px;min-width:44px;min-height:44px}
+ .night-ui .settings-tabs{background:#30472e}.night-ui .settings-tabs button{color:#c4d5b4}.night-ui .settings-tabs button[aria-pressed=true]{background:#456039;color:#edf4e5}
+}
+@media(max-width:900px) and (max-height:549px) and (orientation:landscape){
+ .care-open .vitals{left:auto;right:max(12px,env(safe-area-inset-right,0px));top:calc(68px + env(safe-area-inset-top,0px));bottom:calc(68px + env(safe-area-inset-bottom,0px));width:min(340px,calc(100vw - 152px));height:auto;max-height:none}
+ .care-open .scene-actions{visibility:visible}.care-open .settings-save p{display:none}
+ .care-open .care-header{padding:0 0 6px;margin-bottom:7px}.care-open .care-title{margin:0;font-size:19px}
+ .care-open .settings-tabs button{min-height:38px}.care-open .settings-save{margin-top:7px}
+}
+@media(max-width:900px) and (max-height:700px) and (orientation:portrait){
+ .care-open .world-heading{display:none}
+ .care-open .vitals{height:min(60dvh,calc(100dvh - 248px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px)))}
+ .care-open .care-header{padding:0 0 6px;margin-bottom:6px}.care-open .care-title{margin:0;font-size:19px}
+ .care-open .settings-tabs button{min-height:38px}
+}
+@media(max-width:900px) and (max-height:379px) and (orientation:landscape){
+ .care-open .vitals{bottom:calc(12px + env(safe-area-inset-bottom,0px))}
+ .care-open .bottom-bar,.care-open .world-heading{display:none}
+ .care-open .care-header{position:relative;padding-right:48px}
+ .care-open .care-title{height:0;min-height:0}.care-open .care-title>span{display:none}
+ .care-open .care-title button{position:absolute;right:0;top:0}
+}

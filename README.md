@@ -8,6 +8,16 @@ A mobile-first, procedural 3D terrarium game. Build a planted landscape with soi
 
 **Plain HTML, CSS, and JavaScript. No Jekyll, Ruby, framework, compilation, or backend is required to host the game.** The Babylon.js engine and environment lighting are bundled locally, and the interface uses device fonts with no external font requests.
 
+## Garden fixes
+
+Completed planting and editing actions, including grass, now save immediately with storage confirmation. Continuous soil and sunlight gestures batch their work and save when released. The existing save key, garden format, named slots, plant identities and archived animals are retained.
+
+When supplies fall below 9 seeds, tap the seed balance for a free refill to 12. If no plants are ready to harvest, the garden's harvest button offers the refill directly. Refills grant no XP or harvest rewards. Free build is available from the same panel for unlimited planting without resetting progress.
+
+Ferns have fuller fronds, and new woodland and tropical gardens include additional understory ferns. For an existing garden, use **Settings → Garden → Add ferns** to plant up to three in clear dry spots at the displayed seed cost. This action checks mature glass/solid clearance, keeps current specimens and terrain, and supports one-step Undo. Updates do not insert plants into saved gardens automatically.
+
+Phone settings use Garden / Display / Files tabs with a scrolling content area and a fixed **Back to terrarium** button. Settings, inspection and options dialogs hand off to one another, and successful coordinate planting returns to the garden. The first tap on uncovered soil dismisses settings and performs the selected edit.
+
 ## Living terrarium polish
 
 - **Seamless studio:** the 3D background is solved through the renderer's exposure, tone mapping, gamma and contrast, so it displays exactly the page color. The gray box behind the terrarium is gone, and at night the page darkens with the scene.

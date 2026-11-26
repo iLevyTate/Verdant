@@ -404,8 +404,8 @@ void main(){vec2 p=vWorld.xz;vec4 heightSample=texture2D(terrainHeights,p/terrai
   if(!document.body.classList.contains?.('ui-hidden')){
    const phone=w<=900,landscape=phone&&w>h&&h<550,collapsed=document.body.classList.contains?.('tray-collapsed')||false,header=box('.topbar'),heading=box('.world-heading'),kit=box('.kit'),actions=box('.scene-actions'),footer=box('.bottom-bar');
    top=Math.max(top,header?header.bottom+8:phone?(landscape?108:146):90,heading?heading.bottom+12:0);bottom=Math.min(bottom,footer?footer.top-12:phone?h-(landscape?80:80+(collapsed?112:268)+68):h-80);
-   if(landscape){left=Math.max(left,actions?actions.right+12:112);right=Math.min(right,kit?kit.left-12:w-265);}
-   else if(phone){bottom=Math.min(bottom,kit?kit.top-12:bottom,actions?actions.top-12:bottom);}
+   if(landscape){left=Math.max(left,actions?actions.right+12:112);const panel=box('.vitals')||box('.inspector');right=Math.min(right,kit?kit.left-12:w-12);if(panel){if(panel.left>w*.4)right=Math.min(right,panel.left-12);else left=Math.max(left,panel.right+12);}}
+   else if(phone){bottom=Math.min(bottom,kit?kit.top-12:bottom,actions?actions.top-12:bottom);for(const selector of ['.vitals','.inspector']){const panel=box(selector);if(panel)bottom=Math.min(bottom,panel.top-12);}}
    else{left=Math.max(left,kit?kit.right+18:0);for(const selector of ['.vitals','.journal','.inspector']){const r=box(selector);if(r&&r.left>w*.55)right=Math.min(right,r.left-18);}if(actions){if(actions.left>w*.55&&actions.right>right)right=Math.min(right,actions.left-18);else if(actions.right>left&&actions.left<right)bottom=Math.min(bottom,actions.top-12);}const hint=box('.interaction-hint');if(hint&&hint.right>left&&hint.left<right)bottom=Math.min(bottom,hint.top-10);}
   }
   left=C.clamp(left,0,Math.max(0,w-96));right=C.clamp(right,left+96,w);top=C.clamp(top,0,Math.max(0,h-96));bottom=C.clamp(bottom,top+96,h);return{left,top,width:right-left,height:bottom-top};

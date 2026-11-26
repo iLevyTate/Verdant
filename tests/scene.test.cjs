@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
-const B=require('babylonjs');
+const B=require('../vendor/babylon.js');
 let Canvas;try{({Canvas}=require('@napi-rs/canvas'));}catch{({Canvas}=require(process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES+'/@napi-rs/canvas'));}
 const APP=require('node:fs').existsSync(require('node:path').join(__dirname,'../dist/core.js'))?'../dist/':'../';
 const C=require(APP+'core.js');

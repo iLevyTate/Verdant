@@ -33,9 +33,9 @@ class MeshBuilder{
 }
 function build(type,variant,scene,quality='auto'){
  const detail=quality==='overview'?.26:quality==='medium'?.46:quality==='performance'?.38:quality==='cinematic'?1:window.innerWidth<900?.58:.72;const g=new MeshBuilder(detail),r=C.rng('botanical-v1 '+type+' '+variant),leaf=rgb(['#416331','#596b3c','#315d38'][variant]),young=rgb(['#81925a','#a0a364','#608653'][variant]),stem=rgb('#4e5e32'),bark=rgb('#a08b6e');
- if(type==='fern')for(let j=0;j<8;j++){
-  const angle=j/8*TAU+r()*.35,L=.75+r()*.5,H=.50+r()*.45,point=t=>[Math.cos(angle)*L*t,.05+H*Math.sin(t*1.9)-.06*t*t,Math.sin(angle)*L*t];g.part=1;g.curve(Array.from({length:13},(_,i)=>point(i/12)),.012,.003,stem,6);g.part=0;
-  for(let k=2;k<12;k++){const t=k/12,p=point(t),reach=(Math.sin(t*Math.PI)*.20+.025)*(1+.15*r());for(const side of[-1,1]){const a=angle+side*1.05,tip=[p[0]+Math.cos(a)*reach,p[1]+.02-reach*.08,p[2]+Math.sin(a)*reach];g.blade(p,tip,reach*.22,k%3?leaf:young,{shape:'fern',rows:9,curl:.02,fold:.009});}}
+ if(type==='fern')for(let j=0,fronds=quality==='overview'?8:quality==='performance'?10:[12,10,14][variant];j<fronds;j++){
+  const angle=j/fronds*TAU+r()*.35,L=.75+r()*.5,H=.50+r()*.45,point=t=>[Math.cos(angle)*L*t,.05+H*Math.sin(t*1.9)-.06*t*t,Math.sin(angle)*L*t];g.part=1;g.curve(Array.from({length:13},(_,i)=>point(i/12)),.012,.003,stem,6);g.part=0;
+  for(let k=2;k<12;k++){const t=k/12,p=point(t),reach=(Math.sin(t*Math.PI)*.20+.025)*(1+.15*r());for(const side of[-1,1]){const a=angle+side*1.05,tip=[p[0]+Math.cos(a)*reach,p[1]+.02-reach*.08,p[2]+Math.sin(a)*reach];g.blade(p,tip,reach*.22,k%3?leaf:young,{shape:'fern',rows:quality==='cinematic'?9:6,curl:.02,fold:.009});}}
  }
  else if(type==='moss'){
   // A cushion is lumpy, with an uneven edge and lighter new growth on the

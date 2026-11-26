@@ -1,4 +1,4 @@
-const fs=require('node:fs'),vm=require('node:vm'),B=require('babylonjs'),{Canvas}=require('@napi-rs/canvas'),C=require('../core.js');
+const fs=require('node:fs'),vm=require('node:vm'),B=require('../vendor/babylon.js'),{Canvas}=require('@napi-rs/canvas'),C=require('../core.js');
 global.OffscreenCanvas=Canvas;
 class HeadlessEngine extends B.NullEngine{constructor(){super({renderWidth:390,renderHeight:844,textureSize:1024});}setHardwareScalingLevel(){}runRenderLoop(){}resize(){}}
 global.window={innerWidth:390,innerHeight:844,devicePixelRatio:1,addEventListener(){},removeEventListener(){},matchMedia:()=>({matches:false})};global.document={hidden:false,addEventListener(){},removeEventListener(){},createElement(){return new Canvas(256,256)},body:{classList:{toggle(){},contains(name){return name==='tray-collapsed';}}}};global.BABYLON={...B,Engine:HeadlessEngine};global.TerrariumCore=C;

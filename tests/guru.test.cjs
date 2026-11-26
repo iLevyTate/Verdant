@@ -42,9 +42,13 @@ function framed(){const matrix=world.camera.getViewMatrix(true).multiply(world.c
 window.innerWidth=390;window.innerHeight=844;
 rect('.safe-viewport',0,44,390,766);rect('.topbar',0,44,390,62);rect('.world-heading',14,112,362,78);rect('.kit',12,618,366,112);rect('.scene-actions',14,562,362,44);rect('.bottom-bar',14,744,362,56);
 assert.deepEqual(world.viewBounds(),{left:0,top:202,width:390,height:348});world.resize();world.resetCamera();framed();
+rectangles.delete('.kit');rectangles.delete('.scene-actions');rect('.vitals',14,360,362,408);
+assert.equal(world.viewBounds().top+world.viewBounds().height,348,'phone settings reserve the visible canvas above the sheet');rectangles.delete('.vitals');rect('.inspector',16,480,320,288);assert.equal(world.viewBounds().top+world.viewBounds().height,468,'inspection must not cover the framed garden');
 rectangles.clear();window.innerWidth=844;window.innerHeight=390;
 rect('.safe-viewport',44,0,800,369);rect('.topbar',44,0,800,62);rect('.world-heading',150,67,420,58);rect('.kit',590,140,242,112);rect('.scene-actions',44,108,94,144);rect('.bottom-bar',44,307,526,54);
 assert.deepEqual(world.viewBounds(),{left:150,top:137,width:428,height:158});world.resize();world.resetCamera();framed();
+rectangles.delete('.kit');rect('.vitals',492,68,340,254);assert.equal(world.viewBounds().left+world.viewBounds().width,480,'landscape settings reserve the left canvas');
+rectangles.delete('.vitals');rect('.inspector',16,150,320,172);assert.equal(world.viewBounds().left,348,'a left landscape inspector reserves the free canvas on its right');rectangles.delete('.inspector');
 hidden=true;assert.deepEqual(world.viewBounds(),{left:44,top:0,width:800,height:369});world.resize();world.resetCamera();framed();
 hidden=false;rectangles.clear();window.innerWidth=1363;window.innerHeight=936;
 rect('.safe-viewport',0,0,1363,936);rect('.topbar',0,0,1363,90);rect('.world-heading',520,122,323,100);rect('.kit',30,121,250,600);rect('.vitals',1105,121,228,500);rect('.scene-actions',995,650,338,44);rect('.journal',1105,700,228,150);rect('.bottom-bar',30,863,1303,45);

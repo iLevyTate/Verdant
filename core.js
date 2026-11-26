@@ -67,6 +67,9 @@
   const RECIPES={woodland:['fern','moss','clover','mushroom','tree'],tropical:['fern','moss','clover','flower','tree'],desert:['cactus','succulent','grass','flower']};
   const visualHour=s=>s.lighting==='cycle'?s.clock:s.lighting==='night'?21:10.5;
   const COSTS={fern:4,moss:3,clover:3,flower:5,mushroom:4,tree:9,cactus:6,succulent:4,grass:3,rock:2,log:3,crystal:7,bee:8,frog:10,bunny:12,butterfly:8,snail:6,firefly:8,ladybug:6};
+  const STARTER_SEEDS=12,SEED_REFILL_AT=9;
+  function canRefillSeeds(s){return s.mode==='journey'&&s.seeds<SEED_REFILL_AT;}
+  function refillSeeds(s){if(!canRefillSeeds(s))return{ok:false,seeds:0};const seeds=STARTER_SEEDS-s.seeds;s.seeds=STARTER_SEEDS;return{ok:true,seeds};}
   const DISCOVERIES={
     shade:{name:'A secret shade garden',hint:'Plant a fern or moss within 1.5m of a mature tree.',effect:'Tree canopy softens sunlight and slows local drying.',icon:'tree'},
     pollination:{name:'A meadow in miniature',hint:'Plant flowers within 1.4m of clover or grass.',effect:'A varied meadow brings different plant forms together.',icon:'flower'},
@@ -161,7 +164,7 @@
     const add=(type,x,z,scale=1)=>s.entities.push({id:s.nextId++,type,x,z,rotation:random()*Math.PI*2,scale:scale*(.75+random()*.45),growth:.70+random()*.30,health:.85+random()*.15,variant:Math.floor(random()*3),phase:random()*Math.PI*2,origin:'wild',paid:0,harvest:random()*.25});
     for(let i=0;i<38;i++){const a=random()*Math.PI*2,r=Math.sqrt(random())*4.5,x=Math.cos(a)*r*vessel.x,z=Math.sin(a)*r*vessel.z;if(heightAt(x,z,s)<s.water+.025)continue;let type=bio.species[Math.floor(random()*bio.species.length)];if(type==='tree'&&s.entities.filter(e=>e.type==='tree').length>3)type='fern';if(type==='tree'&&z<-.6)type='clover';add(type,x,z,ELEMENTS[type].scale);}
     for(let i=0;i<10;i++){const a=random()*Math.PI*2,r=1.8+random()*2.8,x=Math.cos(a)*r*vessel.x,z=Math.sin(a)*r*vessel.z;if(heightAt(x,z,s)>s.water-.05)add('rock',x,z,.55+random()*.8);}
-    add('log',-1.2*vessel.x,-1.8*vessel.z,.9);if(WILDLIFE_ENABLED){if(biome!=='desert'){add('butterfly',-1,1);add('snail',-.8,-2);add('firefly',2,1);add('bee',1.4,1.6);add('frog',-2,1.8);}else{add('ladybug',-1,1);add('crystal',1.7,.9,.7);}let bunnyX=-2.8,bunnyZ=-1.8;for(let tries=0;tries<20&&heightAt(bunnyX,bunnyZ,s)<s.water+.05;tries++){const a=random()*Math.PI*2;bunnyX=Math.cos(a)*3.8;bunnyZ=Math.sin(a)*3.8;}add('bunny',bunnyX,bunnyZ);seedCreatureHomes(s);}s.seen=[...new Set(s.entities.map(e=>e.type))];return s;
+    add('log',-1.2*vessel.x,-1.8*vessel.z,.9);if(WILDLIFE_ENABLED){if(biome!=='desert'){add('butterfly',-1,1);add('snail',-.8,-2);add('firefly',2,1);add('bee',1.4,1.6);add('frog',-2,1.8);}else{add('ladybug',-1,1);add('crystal',1.7,.9,.7);}let bunnyX=-2.8,bunnyZ=-1.8;for(let tries=0;tries<20&&heightAt(bunnyX,bunnyZ,s)<s.water+.05;tries++){const a=random()*Math.PI*2;bunnyX=Math.cos(a)*3.8;bunnyZ=Math.sin(a)*3.8;}add('bunny',bunnyX,bunnyZ);seedCreatureHomes(s);}if(biome!=='desert')for(const site of fernSites(s,10,{size:.8}))add('fern',site.x,site.z,ELEMENTS.fern.scale*.8);s.seen=[...new Set(s.entities.map(e=>e.type))];return s;
   }
   function season(s){if(s.biome==='tropical')return s.day%12<7?{name:'Monsoon',growth:1.1,rain:.16,evap:.8}:{name:'Dry season',growth:1,rain:-.12,evap:1.2};if(s.biome==='desert')return s.day%14<3?{name:'Bloom season',growth:1.15,rain:.05,evap:1}:{name:'Dry season',growth:.85,rain:-.18,evap:1.3};return[{name:'Spring',growth:1.15,rain:.08,evap:.9},{name:'Summer',growth:1.05,rain:-.08,evap:1.2},{name:'Autumn',growth:.95,rain:.12,evap:.85},{name:'Winter',growth:.7,rain:.04,evap:.65}][Math.floor(s.day/6)%4];}
   function weatherAt(s){
@@ -212,7 +215,7 @@
     const conditions=localConditions(x,z,s);if(conditions.submerged&&!['bee','butterfly','firefly','rock','crystal','log'].includes(type))return{ok:false,reason:'Choose dry land or the edge of the pond.',conditions};
     const existing=s.entities.find(e=>e.id===excludeId),candidate={type,x,z,rotation:existing?.rotation??options.rotation??0,scale:existing?.scale||(def.scale||1)*clamp(options.size||1,.6,1.5)},room=def.creature?{ok:true}:spacing(candidate,s,excludeId);if(!room.ok)return{...room,conditions};
     if(WILDLIFE_ENABLED&&!def.creature){const existing=s.entities.find(e=>e.id===excludeId),candidate={type,scale:existing?.scale||(def.scale||1)*clamp(options.size||1,.6,1.5)};if(s.entities.some(e=>ELEMENTS[e.type].creature&&!['bee','butterfly','firefly'].includes(e.type)&&distance({x,z},animalPosition(e,s))<objectRadius(candidate)+animalRadius(e)+.04))return{ok:false,reason:'Leave this animal room beside the mature plant or object.',conditions};}
-    const cost=excludeId!==null||s.mode==='sandbox'?0:COSTS[type]||0;if(s.seeds<cost)return{ok:false,reason:'Harvest mature plants for more seeds, or switch to Free build in the Field Guide.',conditions,cost};
+    const cost=excludeId!==null||s.mode==='sandbox'?0:COSTS[type]||0;if(s.seeds<cost)return{ok:false,reason:'Need more seeds? Tap the seed balance for a free refill or Free build.',conditions,cost};
     return{ok:true,conditions,cost,crowding:room.crowding||0,fit:suitability({type,x,z},s,conditions)};
   }
   // A preview uses the same deterministic specimen as placement, without
@@ -225,6 +228,17 @@
     const check=placement(s,type,x,z,null,options);if(!check.ok)return check;
     const def=ELEMENTS[type],e=previewEntity(s,type,x,z,options);e.paid=check.cost;s.nextId++;
     s.seeds-=check.cost;s.entities.push(e);s.placed++;if(def.category==='plants'){s.stats.planted++;s.quests.plant=true;}if(def.creature){if(!s.stats.lifeTypes.includes(type))s.stats.lifeTypes.push(type);s.quests.life=true;}if(!s.seen.includes(type))s.seen.push(type);return{ok:true,entity:e,events:updateProgress(s)};
+  }
+  // Plan additions without changing a saved garden or spending seeds. A renderer
+  // may reject sites whose mature foliage would reach the glass or a solid object.
+  function fernSites(s,count=3,{size=.85,accept=()=>true}={}){
+    const random=rng(s.seed+'fern-understory'+s.nextId),v=vesselSpec(s),probe={...s,mode:'sandbox',entities:s.entities.slice()},sites=[];
+    for(let i=0;i<200&&sites.length<clamp(count,0,12);i++){
+      const angle=random()*Math.PI*2,r=Math.sqrt(random())*3.8,x=Math.cos(angle)*r*v.x,z=Math.sin(angle)*r*v.z,rotation=random()*Math.PI*2;
+      if(!placement(probe,'fern',x,z,null,{size,rotation}).ok)continue;
+      const e=previewEntity(probe,'fern',x,z,{size,rotation});if(!accept(e))continue;
+      sites.push(e);probe.entities.push(e);probe.nextId++;
+    }return sites;
   }
   function relocate(s,id,x,z){const e=s.entities.find(e=>e.id===id);if(!e)return{ok:false,reason:'Choose an element to move.'};const check=placement(s,e.type,x,z,id);if(!check.ok)return check;e.x=x;e.z=z;return{ok:true,entity:e,events:updateProgress(s)};}
   function remove(s,id){const i=s.entities.findIndex(e=>e.id===id);if(i<0)return 0;const e=s.entities[i],refund=Math.floor((e.paid||0)*.5);s.seeds=clamp(s.seeds+refund,0,9999);s.entities.splice(i,1);return refund;}
@@ -325,6 +339,6 @@
     for(const e of o.entities)if(e.type==='tree'&&((e.pruning!==undefined&&(!Number.isFinite(e.pruning)||e.pruning<.52||e.pruning>1))||(e.regrowing!==undefined&&(typeof e.regrowing!=='boolean'||e.regrowing&&e.pruning===undefined))))throw Error('This world has invalid bonsai trimming data.');
     for(const e of o.entities){e.origin=['wild','player','spread'].includes(e.origin)?e.origin:'wild';e.paid=finite(e.paid,0,0,20);e.harvest=finite(e.harvest,0,0,1);}return o;
   }
-  const api={clamp,hash,rng,noise,BIOMES,ELEMENTS,RADIUS,VESSEL_PROFILE,VESSEL_SHAPES,VESSEL_SIZES,BASE_STYLES,vesselSpec,vesselRadius,insideFootprint,resizeVessel,GRID_RINGS,GRID_SEGMENTS,MAX_ENTITIES,PLANTS,CREATURES,RECIPES,rootRadius,spacing,canopyRadius,WILDLIFE_ENABLED,visualHour,COSTS,DISCOVERIES,MISSIONS,RANKS,generate,profile,heightAt,surfaceAt,renderScale,animalRadius,animalHeight,terrainPenalty,objectRadius,setAnimalPositions,animalPosition,vertexPoint,localConditions,weatherAt,season,habitatTarget,sculpt,suitability,placement,previewEntity,place,relocate,remove,trimBonsai,regrowBonsai,trimBranch,care,newCare,advanceCare,careStatus,setCareMode,recordSculpt,isReady,harvest,rank,missionProgress,updateProgress,advance,validate};
+  const api={clamp,hash,rng,noise,BIOMES,ELEMENTS,RADIUS,VESSEL_PROFILE,VESSEL_SHAPES,VESSEL_SIZES,BASE_STYLES,vesselSpec,vesselRadius,insideFootprint,resizeVessel,GRID_RINGS,GRID_SEGMENTS,MAX_ENTITIES,PLANTS,CREATURES,RECIPES,rootRadius,spacing,canopyRadius,WILDLIFE_ENABLED,visualHour,COSTS,STARTER_SEEDS,SEED_REFILL_AT,canRefillSeeds,refillSeeds,fernSites,DISCOVERIES,MISSIONS,RANKS,generate,profile,heightAt,surfaceAt,renderScale,animalRadius,animalHeight,terrainPenalty,objectRadius,setAnimalPositions,animalPosition,vertexPoint,localConditions,weatherAt,season,habitatTarget,sculpt,suitability,placement,previewEntity,place,relocate,remove,trimBonsai,regrowBonsai,trimBranch,care,newCare,advanceCare,careStatus,setCareMode,recordSculpt,isReady,harvest,rank,missionProgress,updateProgress,advance,validate};
   if(typeof module!=='undefined')module.exports=api;else root.TerrariumCore=api;
 })(typeof window!=='undefined'?window:globalThis);
