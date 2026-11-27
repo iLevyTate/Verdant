@@ -39,3 +39,10 @@ Automated coverage now includes immediate grass save/reload for all three varian
 The November 25, 2026 browser pass uses the production UI with a local NullEngine fixture because the available browser has no WebGL. It verifies phone layout, section visibility, fixed close/return controls and native dialog transitions. It does not establish GPU appearance, physical-device frame rates, or native OS suspension behavior.
 
 On a physical phone, plant grass and immediately close/reopen the installed app. Check the same variant, position, seed balance and growth. Spend down to fewer than 9 seeds with no harvest ready, refill, then plant again. In an existing garden, add a fern patch and Undo it; existing plants and terrain must stay unchanged. Open each settings section, rotate the phone, inspect and move a plant, open/close a native options dialog, and return to touch editing without a second dismissal tap.
+
+## Editing regression checks
+
+- Select Observe twice, then tap empty soil. Check the specimen count and seed balance. Inspect a plant, start a move, and cancel with the button or Escape. Both paths should return focus to Move on that plant. Repeat with the desktop building tools collapsed.
+- In precise editing, change X, tab to another field and let a simulation refresh pass. Apply the edit, reload, and check that the other coordinates, rotation and size retain their saved precision. Try an occupied spot and check that the reason appears beside the form.
+- Type a named garden title, tab to Save, pause, then save. Make another edit before archiving the open slot. Restore its dated backup and verify the latest edit.
+- Open the seed balance before a harvest becomes ready. Check that the guide enables harvesting while it stays open. With an empty balance and no harvest, look for the labeled refill action on both desktop and mobile.
