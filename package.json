@@ -4,7 +4,7 @@
   "private": true,
   "description": "Mobile-first botanical terrarium game with detailed plants, sculptable terrain, and rapid growth",
   "dependencies": {
-    "babylonjs": "9.34.0"
+    "babylonjs": "9.36.0"
   },
   "scripts": {
     "start": "node scripts/serve.mjs",
