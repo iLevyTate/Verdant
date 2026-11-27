@@ -16,7 +16,7 @@
     "shaders:export": "node scripts/export-shaders.cjs"
   },
   "devDependencies": {
-    "@napi-rs/canvas": "1.1.0",
+    "@napi-rs/canvas": "1.1.1",
     "linkedom": "0.18.15"
   }
 }
